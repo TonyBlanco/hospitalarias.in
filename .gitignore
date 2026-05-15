@@ -1,0 +1,23 @@
+# OS
+.DS_Store
+
+# Secrets
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.crt
+
+# Backups / archives
+backups/
+*.sql
+*.sql.gz
+*.zip
+*.tar
+*.tar.gz
+*.wpress
+
+# Logs
+logs/
+*.log
