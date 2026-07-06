@@ -1,0 +1,56 @@
+name: Deploy Hospitalarias to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-hospitalarias
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and deploy static site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      GITHUB_BRANCH: main
+      HOSTINGER_DOMAIN: hospitalarias.in
+      NEXT_PUBLIC_TINA_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_TINA_CLIENT_ID }}
+      TINA_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_TINA_CLIENT_ID }}
+      TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
+      HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
+      DEPLOY_ARCHIVE: hospitalarias_astro_dist.zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate required secrets
+        run: |
+          test -n "$NEXT_PUBLIC_TINA_CLIENT_ID"
+          test -n "$TINA_TOKEN"
+          test -n "$HOSTINGER_API_TOKEN"
+
+      - name: Build Tina admin and Astro site
+        run: npm run build:cms
+
+      - name: Package static output
+        run: |
+          cd dist
+          zip -qr "../$DEPLOY_ARCHIVE" .
+
+      - name: Deploy to Hostinger
+        run: node scripts/deploy-hostinger.mjs
