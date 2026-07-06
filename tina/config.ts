@@ -7,7 +7,8 @@ export default defineConfig({
   client: {
     // Tina Cloud
     clientId: process.env.TINA_CLIENT_ID || '185ba845-9cc7-4322-8bfc-de173c89078f',
-    organization: process.env.TINA_ORG || '',
+    organization: process.env.TINA_ORG || '185ba845-9cc7-4322-8bfc-de173c89078f',
+    token: process.env.TINA_TOKEN || 'b3bfea803bd217fc9205f7f12d35d1a8b21a8de3',
   },
   contentApiUrlOverride: '/api/tina',
   schema: {
