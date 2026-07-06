@@ -2,9 +2,16 @@
 
 ## Current Status
 
-The website is a static Astro build deployed to Hostinger. The public site is live, but production editing at `/admin` is intentionally paused until Tina Cloud is connected with secure credentials and a Git-based publishing workflow.
+The website is a static Astro build deployed to Hostinger. The TinaCMS admin is generated and deployed at `https://hospitalarias.in/admin/`.
 
-Do not publish Tina Cloud tokens or API keys inside `public/`, `dist/`, or committed source files.
+The admin currently reaches the TinaCMS login screen. If login is blocked by CORS, save the exact production origin in Tina Cloud Site URLs.
+
+Required Tina Cloud Site URLs:
+
+- `https://hospitalarias.in`
+- `https://www.hospitalarias.in` if the `www` domain is enabled
+
+Do not publish write-capable API keys inside `public/`, `dist/`, or committed source files. Tina's Content Readonly token is used by the generated admin bundle for runtime reads.
 
 ## Safe Editing Flow Now
 
@@ -55,9 +62,25 @@ The Tina config reads credentials from environment variables:
 
 Set the Tina credentials in the deploy environment, not in source code.
 
-### Step 5: Configure Publishing
+### Step 5: Configure Site URLs
 
-Because Hostinger is serving a static upload, edits made in Tina must commit to Git and trigger a new static deploy. Until that pipeline exists, `/admin` should stay as the setup page.
+In Tina Cloud, open the project configuration and save the exact production origin:
+
+```text
+https://hospitalarias.in
+```
+
+If Tina is also used from `www`, add:
+
+```text
+https://www.hospitalarias.in
+```
+
+After saving, reload `https://hospitalarias.in/admin/`.
+
+### Step 6: Configure Publishing
+
+Because Hostinger is serving a static upload, edits made in Tina must commit to Git and trigger a new static deploy. Until that automation exists, a developer still needs to rebuild and redeploy the static site after content changes.
 
 ---
 

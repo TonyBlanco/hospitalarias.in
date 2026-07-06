@@ -25,6 +25,15 @@ Expected result:
 
 ## Package
 
+To include the TinaCMS admin, build with:
+
+```bash
+cd /Volumes/T7/hosting/hospitalarias.in
+NEXT_PUBLIC_TINA_CLIENT_ID="..." TINA_TOKEN="..." GITHUB_BRANCH="main" npm run build:cms
+```
+
+Use `npm run build` only when the static site should be built without regenerating the Tina admin.
+
 ```bash
 cd /Volumes/T7/hosting/hospitalarias.in
 rm -f restore/hospitalarias_astro_dist_20260707.zip

@@ -13,7 +13,8 @@
 - Astro rebuild is deployed and working.
 - `https://hospitalarias.in/index.html` serves the new Astro home.
 - Internal routes such as `/en/about/`, `/hi/`, `/ml/`, `/admin/`, sitemap and redirects are working.
-- `/admin/` is intentionally a safe CMS setup page until Tina Cloud/Git publishing is connected.
+- `/admin/` serves the generated TinaCMS admin.
+- TinaCMS renders the login screen, but Tina Identity may block login with CORS until Tina Cloud Site URLs are saved with the exact production origin: `https://hospitalarias.in`.
 - HTML responses now include `Cache-Control: no-cache, no-store, must-revalidate` to avoid stale page cache after the Hostinger cache is flushed.
 
 ## Known Remaining Issue
