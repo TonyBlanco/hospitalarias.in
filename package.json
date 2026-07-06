@@ -1,0 +1,21 @@
+{
+  "name": "hospitalarias-in",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "dev:cms": "tinacms dev -c 'astro dev'",
+    "build": "astro check && astro build",
+    "build:cms": "tinacms build && astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/check": "latest",
+    "@astrojs/sitemap": "latest",
+    "@tinacms/cli": "^2.5.3",
+    "astro": "latest",
+    "tinacms": "^3.10.0",
+    "typescript": "latest"
+  }
+}

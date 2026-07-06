@@ -1,0 +1,116 @@
+---
+import { routes, type Locale, type PageData } from '@/data/pages';
+import { t } from '@/data/i18n';
+
+type Props = { page: PageData; locale: Locale };
+const { page, locale } = Astro.props;
+
+const heroCtas = page.ctas.map((cta, i) => ({
+  ...cta,
+  label: i === 0 ? t(locale, 'heroCtaDonate') : t(locale, 'heroCtaLearn'),
+}));
+---
+
+<section class="hero">
+  <div class="container">
+    <p class="eyebrow">{page.eyebrow}</p>
+    <h1>{page.title}</h1>
+    <p>{page.description}</p>
+    <div class="hero-actions">
+      {heroCtas.map((cta) => (
+        <a class:list={['button', cta.variant === 'secondary' && 'secondary']} href={cta.href}>
+          {cta.label}
+        </a>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <p class="eyebrow">{t(locale, 'whatWeDoEyebrow')}</p>
+    <h2>{t(locale, 'whatWeDoTitle')}</h2>
+    <p class="lead">{t(locale, 'whatWeDoDesc')}</p>
+    <div class="grid grid-3">
+      <article class="card">
+        <h3>{t(locale, 'shelterTitle')}</h3>
+        <p>{t(locale, 'shelterDesc')}</p>
+      </article>
+      <article class="card">
+        <h3>{t(locale, 'rehabTitle')}</h3>
+        <p>{t(locale, 'rehabDesc')}</p>
+      </article>
+      <article class="card">
+        <h3>{t(locale, 'reintTitle')}</h3>
+        <p>{t(locale, 'reintDesc')}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="container impact-grid">
+    <div class="impact-item">
+      <span class="impact-number">60</span>
+      <span class="impact-label">{t(locale, 'impactResidents')}</span>
+    </div>
+    <div class="impact-item">
+      <span class="impact-number">24/7</span>
+      <span class="impact-label">{t(locale, 'impactCare')}</span>
+    </div>
+    <div class="impact-item">
+      <span class="impact-number">100+</span>
+      <span class="impact-label">{t(locale, 'impactYears')}</span>
+    </div>
+    <div class="impact-item">
+      <span class="impact-number">1</span>
+      <span class="impact-label">{t(locale, 'impactVision')}</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container founders-teaser">
+    <div class="founders-teaser-text">
+      <p class="eyebrow">{t(locale, 'foundersEyebrow')}</p>
+      <h2>{t(locale, 'foundersTitle')}</h2>
+      <p>{t(locale, 'foundersDesc')}</p>
+      <a class="button" href={routes[locale]['benito-menni']}>
+        {t(locale, 'foundersCta')}
+      </a>
+    </div>
+    <div class="founders-teaser-image">
+      <img src="/images/2025/07/FUNDADORAS-1920.jpg" alt={t(locale, 'foundersAlt')} loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="container">
+    <p class="eyebrow">{t(locale, 'getInvolvedEyebrow')}</p>
+    <h2>{t(locale, 'getInvolvedTitle')}</h2>
+    <div class="grid grid-3">
+      <article class="card card-cta">
+        <h3>{t(locale, 'donateTitle')}</h3>
+        <p>{t(locale, 'donateDesc')}</p>
+        <a class="button" href={routes[locale].donate}>
+          {t(locale, 'donateCta')}
+        </a>
+      </article>
+      <article class="card card-cta">
+        <h3>{t(locale, 'volunteerTitle')}</h3>
+        <p>{t(locale, 'volunteerDesc')}</p>
+        <a class="button secondary" href={routes[locale].volunteer}>
+          {t(locale, 'volunteerCta')}
+        </a>
+      </article>
+      <article class="card card-cta">
+        <h3>{t(locale, 'collaborateTitle')}</h3>
+        <p>{t(locale, 'collaborateDesc')}</p>
+        <a class="button secondary" href={routes[locale].collaborate}>
+          {t(locale, 'collaborateCta')}
+        </a>
+      </article>
+    </div>
+  </div>
+</section>

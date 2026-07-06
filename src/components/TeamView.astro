@@ -1,0 +1,38 @@
+---
+import { type Locale } from '@/data/pages';
+import { t } from '@/data/i18n';
+import team from '@/content/settings/team.json';
+
+type Props = { locale: Locale };
+const { locale } = Astro.props;
+---
+
+<section class="section alt">
+  <div class="container">
+    <p class="eyebrow">{t(locale, 'about')}</p>
+    <h1>{t(locale, 'team')}</h1>
+    <p class="lead">{locale === 'hi'
+      ? 'केंद्र के हमारे मिशन को संभव बनाने वाली बहनें, कर्मचारी और सहयोगी।'
+      : locale === 'ml'
+      ? 'ഞങ്ങളുടെ ദൗത്യത്തിന് ജീവൻ നൽകുന്ന സന്ന്യാസിനിമാർ, ജീവനക്കാർ & സഹകാരികൾ.'
+      : 'The Sisters, staff and collaborators who make our mission of care and hospitality possible.'}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="team-grid">
+      {team.members.map((member) => (
+        <article class="team-card">
+          <div class="team-card-image">
+            <img src={member.image} alt={member.name} loading="lazy" />
+          </div>
+          <div class="team-card-body">
+            <h3>{member.name}</h3>
+            <p>{member.role}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>

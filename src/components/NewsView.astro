@@ -1,0 +1,56 @@
+---
+import { getCollection } from 'astro:content';
+import { type Locale } from '@/data/pages';
+import { t } from '@/data/i18n';
+
+type Props = { locale: Locale };
+const { locale } = Astro.props;
+
+const allNews = await getCollection('news');
+const news = allNews
+  .filter((item) => item.id.startsWith(locale + '/'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+function formatDate(date: Date): string {
+  const localeMap: Record<Locale, string> = {
+    en: 'en-GB',
+    hi: 'hi-IN',
+    ml: 'ml-IN',
+  };
+  return date.toLocaleDateString(localeMap[locale] ?? 'en-GB', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+---
+
+<section class="section alt">
+  <div class="container">
+    <p class="eyebrow">{t(locale, 'newsTitle')}</p>
+    <h1>{t(locale, 'newsTitle')}</h1>
+    <p class="lead">{t(locale, 'newsDesc')}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    {news.length > 0 ? (
+      <div class="news-grid">
+        {news.map((article) => (
+          <article class="news-card">
+            <img src={article.data.image} alt={article.data.imageAlt} loading="lazy" />
+            <div class="news-card-body">
+              <span class="news-category">{article.data.category}</span>
+              <time datetime={article.data.date.toISOString()}>{formatDate(article.data.date)}</time>
+              <h2>{article.data.title}</h2>
+              <p>{article.data.description}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    ) : (
+      <p class="lead">{t(locale, 'newsEmpty')}</p>
+    )}
+  </div>
+</section>

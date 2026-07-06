@@ -1,0 +1,35 @@
+---
+import { routes, type Locale } from '@/data/pages';
+import { t } from '@/data/i18n';
+type Props = { locale: Locale };
+const { locale } = Astro.props;
+const logoSrc = '/logo.svg';
+const logoAlt = 'Sisters Hospitallers';
+---
+
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-about">
+      <img src={logoSrc} alt={logoAlt} class="footer-logo" width="140" height="auto" />
+      <p class="footer-quote">"Let all that you do be done in love." – 1 Corinthians 16:14</p>
+    </div>
+    <div>
+      <h3>{t(locale, 'quickLinks')}</h3>
+      <p><a href={routes[locale].about}>{t(locale, 'about')}</a></p>
+      <p><a href={routes[locale].news}>{t(locale, 'news')}</a></p>
+      <p><a href={routes[locale].contact}>{t(locale, 'contact')}</a></p>
+      <p><a href={routes[locale]['privacy-policy']}>{t(locale, 'privacyPolicy')}</a></p>
+    </div>
+    <div class="footer-contact">
+      <h3>Contact Info</h3>
+      <p><strong>India Mission – Benedict Menni Psychosocial Rehabilitation Centre</strong></p>
+      <p>KP-10/147-1, Near Kadinamkulam Panchayath Office,<br/>Chittattumukku P.O, Kazhakoottam,<br/>Trivandrum – 695301, Kerala, India</p>
+      <p>Mobile: <a href="tel:+919207273229">+91 9207273229</a></p>
+      <p>Landline: <a href="tel:+914712080454">+91 471 2080454</a></p>
+      <p>Email: <a href="mailto:benedictmennipsrc17@gmail.com">benedictmennipsrc17@gmail.com</a></p>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <p>&copy; {new Date().getFullYear()} Benedict Menni Psychosocial Rehabilitation Centre. All rights reserved.</p>
+  </div>
+</footer>

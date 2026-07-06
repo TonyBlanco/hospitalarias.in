@@ -1,0 +1,12 @@
+{
+  "members": [
+    { "name": "Sr. Soshy", "role": "Sister Hospitaller", "image": "/images/2025/10/Sr-Soshy.jpg" },
+    { "name": "Sr. Sheeba", "role": "Sister Hospitaller", "image": "/images/2025/10/Sr-Sheeba.jpg" },
+    { "name": "Athira V. Mathew", "role": "Social Worker", "image": "/images/2025/09/Athira.-V-Mathew.jpg" },
+    { "name": "Evelina", "role": "Social Worker", "image": "/images/2025/10/Evelina-Social-worker.jpg" },
+    { "name": "Geena", "role": "Nurse", "image": "/images/2025/10/Geena-Nurse.jpg" },
+    { "name": "Nishad", "role": "Driver", "image": "/images/2025/09/Nishad-Driver.jpg" },
+    { "name": "Priya R.", "role": "Team Member", "image": "/images/2025/09/Priya-R.jpg" },
+    { "name": "Vincy", "role": "Team Member", "image": "/images/2025/09/Vincy.jpg" }
+  ]
+}

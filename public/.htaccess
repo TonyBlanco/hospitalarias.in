@@ -1,0 +1,26 @@
+RewriteEngine On
+DirectoryIndex index.html
+
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>
+
+Redirect 301 /our-founders/ /en/about/founders/
+Redirect 301 /our-founders-2/ /en/about/founders/
+Redirect 301 /benito-menni/ /en/about/founders/benito-menni/
+Redirect 301 /our-mission-values/ /en/about/mission-values/
+Redirect 301 /our-team/ /en/about/team/
+Redirect 301 /what-we-do/ /en/what-we-do/
+Redirect 301 /get-involved/donate/ /en/get-involved/donate/
+Redirect 301 /get-involved/collaborate-with-us/ /en/get-involved/collaborate/
+Redirect 301 /get-involved/volunteer-services/ /en/get-involved/volunteer/
+Redirect 301 /communication/ /en/news/
+Redirect 301 /communications/ /en/news/
+Redirect 301 /gallery/ /en/gallery/
+Redirect 301 /newsletter/ /en/newsletter/
+Redirect 301 /contact/ /en/contact/
+Redirect 301 /policy/ /en/privacy-policy/

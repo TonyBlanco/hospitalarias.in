@@ -1,0 +1,46 @@
+---
+import { routes, type Locale, type PageId } from '@/data/pages';
+import { t } from '@/data/i18n';
+import navigation from '@/content/settings/navigation.json';
+
+type Props = { locale: Locale; pageId: PageId };
+const { locale, pageId } = Astro.props;
+const nav = navigation.locales[locale];
+const logoSrc = '/logo.svg';
+const logoAlt = 'Sisters Hospitallers';
+
+const otherLocales = (['en', 'hi', 'ml'] as Locale[]).filter(l => l !== locale);
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" href={routes[locale].home}>
+      <img src={logoSrc} alt={logoAlt} class="site-logo" width="160" height="auto" />
+    </a>
+    <nav class="nav" aria-label={t(locale, 'navLabel')}>
+      {
+        nav.map((item) =>
+          item.children ? (
+            <details>
+              <summary>{item.label}</summary>
+              <div class="nav-menu">
+                <a href={item.href}>{item.label}</a>
+                {item.children.map((child) => <a href={child.href}>{child.label}</a>)}
+              </div>
+            </details>
+          ) : (
+            <a class="nav-link" href={item.href}>{item.label}</a>
+          ),
+        )
+      }
+      <a class="button" href={routes[locale].donate}>{t(locale, 'donate')}</a>
+      <div class="language-switches">
+        {otherLocales.map(l => (
+          <a class="language-switch" href={routes[l][pageId]} hreflang={l}>
+            {l === 'hi' ? 'हिं' : l === 'ml' ? 'ML' : 'EN'}
+          </a>
+        ))}
+      </div>
+    </nav>
+  </div>
+</header>

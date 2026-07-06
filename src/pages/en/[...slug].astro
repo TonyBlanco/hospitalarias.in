@@ -1,0 +1,33 @@
+---
+import PageView from '@/components/PageView.astro';
+import GalleryView from '@/components/GalleryView.astro';
+import NewsView from '@/components/NewsView.astro';
+import TeamView from '@/components/TeamView.astro';
+import Base from '@/layouts/Base.astro';
+import { getPage, pageIds, routes, type PageId } from '@/data/pages';
+
+export function getStaticPaths() {
+  return pageIds
+    .filter((id) => id !== 'home')
+    .map((id) => ({
+      params: { slug: routes.en[id].replace(/^\/en\/?/, '').replace(/\/$/, '') },
+      props: { pageId: id },
+    }));
+}
+
+type Props = { pageId: PageId };
+const { pageId } = Astro.props;
+const page = getPage(pageId, 'en');
+---
+
+<Base title={page.title} description={page.description} locale="en" pageId={pageId}>
+  {pageId === 'gallery' ? (
+    <GalleryView page={page} locale="en" />
+  ) : pageId === 'news' ? (
+    <NewsView locale="en" />
+  ) : pageId === 'team' ? (
+    <TeamView locale="en" />
+  ) : (
+    <PageView page={page} locale="en" />
+  )}
+</Base>

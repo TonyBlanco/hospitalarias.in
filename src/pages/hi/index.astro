@@ -1,0 +1,11 @@
+---
+import HomeView from '@/components/HomeView.astro';
+import Base from '@/layouts/Base.astro';
+import { getPage } from '@/data/pages';
+
+const page = getPage('home', 'hi');
+---
+
+<Base title={page.title} description={page.description} locale="hi" pageId="home">
+  <HomeView page={page} locale="hi" />
+</Base>

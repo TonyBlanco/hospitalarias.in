@@ -1,0 +1,76 @@
+{
+  "locales": {
+    "en": [
+      { "label": "Home", "href": "/" },
+      {
+        "label": "About",
+        "href": "/en/about/",
+        "children": [
+          { "label": "Mission & Values", "href": "/en/about/mission-values/" },
+          { "label": "Founders", "href": "/en/about/founders/" },
+          { "label": "Team", "href": "/en/about/team/" }
+        ]
+      },
+      { "label": "What We Do", "href": "/en/what-we-do/" },
+      {
+        "label": "Get Involved",
+        "href": "/en/get-involved/",
+        "children": [
+          { "label": "Donate", "href": "/en/get-involved/donate/" },
+          { "label": "Volunteer", "href": "/en/get-involved/volunteer/" },
+          { "label": "Collaborate", "href": "/en/get-involved/collaborate/" }
+        ]
+      },
+      { "label": "News", "href": "/en/news/" },
+      { "label": "Contact", "href": "/en/contact/" }
+    ],
+    "hi": [
+      { "label": "होम", "href": "/hi/" },
+      {
+        "label": "हमारे बारे में",
+        "href": "/hi/humare-baare/",
+        "children": [
+          { "label": "मिशन और मूल्य", "href": "/hi/humare-baare/mission/" },
+          { "label": "संस्थापक", "href": "/hi/humare-baare/sansthapak/" },
+          { "label": "टीम", "href": "/hi/humare-baare/team/" }
+        ]
+      },
+      { "label": "हम क्या करते हैं", "href": "/hi/ham-kya-karte/" },
+      {
+        "label": "जुड़ें",
+        "href": "/hi/jude/",
+        "children": [
+          { "label": "दान करें", "href": "/hi/jude/daan/" },
+          { "label": "सेवा", "href": "/hi/jude/sewa/" },
+          { "label": "सहयोग", "href": "/hi/jude/sahyog/" }
+        ]
+      },
+      { "label": "समाचार", "href": "/hi/samachar/" },
+      { "label": "संपर्क", "href": "/hi/sampark/" }
+    ],
+    "ml": [
+      { "label": "ഹോം", "href": "/ml/" },
+      {
+        "label": "ഞങ്ങളെ കുറിച്ച്",
+        "href": "/ml/njangale-kurichu/",
+        "children": [
+          { "label": "ദൗത്യം & മൂല്യങ്ങൾ", "href": "/ml/njangale-kurichu/mission/" },
+          { "label": "സ്ഥാപകർ", "href": "/ml/njangale-kurichu/sthapakar/" },
+          { "label": "ടീം", "href": "/ml/njangale-kurichu/team/" }
+        ]
+      },
+      { "label": "ഞങ്ങൾ എന്താണ് ചെയ്യുന്നത്", "href": "/ml/njangal-entha-cheyunnath/" },
+      {
+        "label": "ബന്ധപ്പെടുക",
+        "href": "/ml/chanthidam/",
+        "children": [
+          { "label": "സംഭാവന ചെയ്യുക", "href": "/ml/chanthidam/danam/" },
+          { "label": "സേവനം", "href": "/ml/chanthidam/seva/" },
+          { "label": "സഹകരണം", "href": "/ml/chanthidam/sahyogam/" }
+        ]
+      },
+      { "label": "വാർത്തകൾ", "href": "/ml/varthakal/" },
+      { "label": "ബന്ധപ്പെടുക", "href": "/ml/bandhappedam/" }
+    ]
+  }
+}

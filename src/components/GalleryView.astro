@@ -1,0 +1,97 @@
+---
+import { type Locale, type PageData } from '@/data/pages';
+import { t } from '@/data/i18n';
+
+type Props = { page: PageData; locale: Locale };
+const { page, locale } = Astro.props;
+---
+
+<section class="section alt">
+  <div class="container">
+    <p class="eyebrow">{page.eyebrow}</p>
+    <h1>{page.title}</h1>
+    <p class="lead">{page.description}</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <p class="lead">{t(locale, 'galleryIntro')}</p>
+    <div class="gallery-grid">
+      {page.images.map((image, i) => (
+        <button class="gallery-item" data-index={i} aria-label={`${t(locale, 'viewImage')}: ${image.alt}`}>
+          <img src={image.src} alt={image.alt} loading="lazy" />
+          <span class="gallery-caption">{image.alt}</span>
+        </button>
+      ))}
+    </div>
+  </div>
+</section>
+
+<div class="lightbox" role="dialog" aria-label={t(locale, 'lightboxLabel')} aria-hidden="true">
+  <button class="lightbox-close" aria-label={t(locale, 'lightboxClose')}>&times;</button>
+  <button class="lightbox-prev" aria-label={t(locale, 'lightboxPrev')}>&lsaquo;</button>
+  <button class="lightbox-next" aria-label={t(locale, 'lightboxNext')}>&rsaquo;</button>
+  <div class="lightbox-content">
+    <img src="" alt="" />
+    <p class="lightbox-caption"></p>
+  </div>
+</div>
+
+<script>
+  const items = document.querySelectorAll('.gallery-item');
+  const lightbox = document.querySelector('.lightbox') as HTMLElement;
+  const lightboxImg = lightbox?.querySelector('img') as HTMLImageElement;
+  const lightboxCaption = lightbox?.querySelector('.lightbox-caption') as HTMLElement;
+  const closeBtn = lightbox?.querySelector('.lightbox-close') as HTMLElement;
+  const prevBtn = lightbox?.querySelector('.lightbox-prev') as HTMLElement;
+  const nextBtn = lightbox?.querySelector('.lightbox-next') as HTMLElement;
+  let currentIndex = 0;
+
+  const images = Array.from(items).map((item) => {
+    const img = item.querySelector('img') as HTMLImageElement;
+    return { src: img?.src ?? '', alt: img?.alt ?? '' };
+  });
+
+  function open(index: number) {
+    currentIndex = index;
+    lightboxImg.src = images[index].src;
+    lightboxImg.alt = images[index].alt;
+    lightboxCaption.textContent = images[index].alt;
+    lightbox.setAttribute('aria-hidden', 'false');
+    lightbox.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function close() {
+    lightbox.classList.remove('active');
+    lightbox.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    (items[currentIndex] as HTMLElement)?.focus();
+  }
+
+  function prev() {
+    open((currentIndex - 1 + images.length) % images.length);
+  }
+
+  function next() {
+    open((currentIndex + 1) % images.length);
+  }
+
+  items.forEach((item, i) => item.addEventListener('click', () => open(i)));
+  closeBtn?.addEventListener('click', close);
+  prevBtn?.addEventListener('click', prev);
+  nextBtn?.addEventListener('click', next);
+
+  lightbox?.addEventListener('click', (e) => {
+    if (e.target === lightbox) close();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (!lightbox?.classList.contains('active')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'ArrowLeft') prev();
+    if (e.key === 'ArrowRight') next();
+  });
+</script>
