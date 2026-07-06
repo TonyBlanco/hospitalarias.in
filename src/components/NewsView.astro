@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import { type Locale } from '@/data/pages';
 import { t } from '@/data/i18n';
+import { mediaPath } from '@/utils/media';
 
 type Props = { locale: Locale };
 const { locale } = Astro.props;
@@ -39,7 +40,7 @@ function formatDate(date: Date): string {
       <div class="news-grid">
         {news.map((article) => (
           <article class="news-card">
-            <img src={article.data.image} alt={article.data.imageAlt} loading="lazy" />
+            <img src={mediaPath(article.data.image)} alt={article.data.imageAlt} loading="lazy" />
             <div class="news-card-body">
               <span class="news-category">{article.data.category}</span>
               <time datetime={article.data.date.toISOString()}>{formatDate(article.data.date)}</time>

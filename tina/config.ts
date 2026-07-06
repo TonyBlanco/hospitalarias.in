@@ -67,6 +67,7 @@ export default defineConfig({
             label: 'Cover image',
             name: 'image',
             required: true,
+            description: 'Select or upload an image from public/images. Saved paths should look like /images/example.jpg.',
           },
           {
             type: 'string',
@@ -119,6 +120,7 @@ export default defineConfig({
             label: 'Photo',
             name: 'image',
             required: true,
+            description: 'Select or upload an image from public/images. Saved paths should look like /images/example.jpg.',
           },
           {
             type: 'string',
@@ -188,6 +190,7 @@ export default defineConfig({
                 type: 'image',
                 label: 'Photo',
                 name: 'image',
+                description: 'Select or upload a team photo from public/images.',
               },
             ],
           },
