@@ -336,6 +336,9 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
 
 // ---------- Manage list ----------
 $articles = ($logged && $config) ? ghListNews($config) : [];
+$articlesByLocale = [];
+foreach ($articles as $a) $articlesByLocale[$a['locale']][] = $a;
+$editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -346,153 +349,212 @@ $articles = ($logged && $config) ? ghListNews($config) : [];
 <title>News Panel — Benedict Menni Centre</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f4f2ef; color: #26221e; margin: 0; padding: 24px; }
-  .card { max-width: 560px; margin: 0 auto 24px; background: #fff; border-radius: 14px; padding: 28px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+  body { font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; background: #f4f2ef; color: #26221e; margin: 0; }
+  a { color: #7a2e2e; }
+
+  /* ---------- Sidebar layout (logged in) ---------- */
+  .layout { display: flex; min-height: 100svh; }
+  .side {
+    width: 250px; flex-shrink: 0; background: #fff; border-right: 1px solid #e6e0d8;
+    padding: 18px 14px; position: sticky; top: 0; height: 100svh; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .side-brand { font-size: 1.05rem; font-weight: 800; margin: 0; }
+  .side-brand span { display: block; font-size: .72rem; font-weight: 600; color: #6b655c; margin-top: 2px; }
+  .btn-new {
+    display: block; background: #7a2e2e; color: #fff; text-align: center; text-decoration: none;
+    font-weight: 700; font-size: .92rem; padding: 11px; border-radius: 8px;
+  }
+  .btn-new:hover { background: #612525; }
+  .side-label { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #6b655c; margin: 6px 4px 6px; }
+  .side-group { font-size: .72rem; font-weight: 700; color: #6b655c; text-transform: uppercase; letter-spacing: .05em; margin: 10px 4px 4px; }
+  .side-item {
+    display: flex; align-items: center; gap: 6px; padding: 8px 8px; border-radius: 8px;
+    text-decoration: none; color: #26221e; font-size: .85rem; line-height: 1.25;
+  }
+  .side-item:hover { background: #f4f2ef; }
+  .side-item.active { background: #f7ecec; color: #7a2e2e; font-weight: 700; }
+  .side-item .slug { flex: 1; overflow: hidden; text-overflow: ellipsis; color: inherit; text-decoration: none; }
+  .side-item.active .slug { color: #7a2e2e; }
+  .side-item .view { font-size: .78rem; color: #6b655c; text-decoration: none; }
+  .side-item .del {
+    border: 0; background: none; color: #b0564f; cursor: pointer; font-size: .95rem;
+    padding: 0 4px; line-height: 1;
+  }
+  .side-item .del:hover { color: #922; }
+  .side-foot { margin-top: auto; padding-top: 12px; border-top: 1px solid #f0ece5; font-size: .82rem; display: flex; flex-direction: column; gap: 6px; }
+  .side-foot a { text-decoration: none; }
+  .side-empty { color: #6b655c; font-size: .85rem; margin: 4px; }
+
+  .main { flex: 1; padding: 26px 20px 40px; display: flex; justify-content: center; align-items: flex-start; }
+  .main .card { width: 100%; max-width: 620px; }
+
+  /* ---------- Card / form ---------- */
+  .card { background: #fff; border-radius: 14px; padding: 28px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+  .centered { min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .centered .card { width: 100%; max-width: 420px; }
   h1 { font-size: 1.35rem; margin: 0 0 4px; }
-  h2 { font-size: 1.1rem; margin: 0 0 12px; }
   .sub { color: #6b655c; font-size: .9rem; margin: 0 0 20px; }
   label { display: block; font-weight: 600; font-size: .85rem; margin: 16px 0 4px; }
   input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid #d8d2c8; border-radius: 8px; font: inherit; font-size: 1rem; background: #fff; }
   input[readonly] { background: #f4f2ef; }
   textarea { min-height: 160px; resize: vertical; }
   .hint { font-size: .78rem; color: #6b655c; margin-top: 3px; }
-  button { margin-top: 22px; width: 100%; padding: 13px; border: 0; border-radius: 8px; background: #7a2e2e; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; }
-  button:hover { background: #612525; }
+  .card button[type=submit] { margin-top: 22px; width: 100%; padding: 13px; border: 0; border-radius: 8px; background: #7a2e2e; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; }
+  .card button[type=submit]:hover { background: #612525; }
   .ok { background: #e8f5e9; border: 1px solid #a5d6a7; color: #1b5e20; padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; }
   .err { background: #fdecea; border: 1px solid #f5b7b1; color: #922; padding: 12px 14px; border-radius: 8px; margin-bottom: 16px; }
   .row { display: flex; gap: 12px; } .row > div { flex: 1; }
   .links { display: flex; justify-content: space-between; margin-top: 18px; font-size: .85rem; }
-  a { color: #7a2e2e; }
-  .articles { width: 100%; border-collapse: collapse; font-size: .85rem; }
-  .articles th { text-align: left; color: #6b655c; font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; padding: 6px 6px 6px 0; border-bottom: 1px solid #e6e0d8; }
-  .articles td { padding: 7px 6px 7px 0; border-bottom: 1px solid #f0ece5; vertical-align: middle; }
-  .badge { display: inline-block; background: #f0ece5; border-radius: 6px; padding: 1px 7px; font-size: .72rem; font-weight: 700; text-transform: uppercase; }
-  .art-actions { white-space: nowrap; text-align: right; }
-  .art-actions a, .art-actions button { margin: 0; width: auto; display: inline-block; padding: 5px 10px; font-size: .8rem; border-radius: 6px; }
-  .btn-edit { background: #f0ece5; color: #26221e; text-decoration: none; }
-  .btn-del { background: #fdecea; color: #922; border: 1px solid #f5b7b1; }
   form.inline { display: inline; margin: 0; }
-  .empty { color: #6b655c; font-size: .9rem; }
+
+  @media (max-width: 860px) {
+    .layout { flex-direction: column; }
+    .side {
+      width: 100%; position: static; height: auto; max-height: none;
+      border-right: 0; border-bottom: 1px solid #e6e0d8;
+    }
+    .side nav { max-height: 42svh; overflow-y: auto; }
+    .main { padding: 18px 12px 32px; }
+    .card { padding: 20px; }
+  }
 </style>
 </head>
 <body>
 
-<?php if ($logged): ?>
-<div class="card">
-  <h2>Manage articles</h2>
-  <?php if ($articles): ?>
-    <table class="articles">
-      <tr><th>Lang</th><th>Article</th><th></th></tr>
-      <?php foreach ($articles as $a): ?>
-        <tr>
-          <td><span class="badge"><?= e($a['locale']) ?></span></td>
-          <td>
-            <?= e($a['slug']) ?><br>
-            <a href="https://hospitalarias.in<?= e(LOCALE_NEWS_BASE[$a['locale']]) . e($a['slug']) ?>/" target="_blank" rel="noopener" style="font-size:.78rem">View ↗</a>
-          </td>
-          <td class="art-actions">
-            <a class="btn-edit" href="?edit=<?= e($a['locale'] . '/' . $a['slug']) ?>">Edit</a>
-            <form class="inline" method="post" onsubmit="return confirm('Delete &quot;<?= e($a['slug']) ?>&quot;? This cannot be undone.');">
-              <input type="hidden" name="action" value="delete">
-              <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
-              <input type="hidden" name="path" value="<?= e($a['path']) ?>">
-              <button type="submit" class="btn-del">Delete</button>
-            </form>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </table>
-  <?php else: ?>
-    <p class="empty">No articles found on GitHub.</p>
-  <?php endif; ?>
-</div>
-<?php endif; ?>
-
-<div class="card">
-  <h1><?= $editing ? 'Edit article' : 'News Panel' ?></h1>
-  <p class="sub">Benedict Menni Psychosocial Rehabilitation Centre</p>
-
-  <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
-  <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
-
-  <?php if (!$logged): ?>
+<?php if (!$logged): ?>
+<div class="centered">
+  <div class="card">
+    <h1>News Panel</h1>
+    <p class="sub">Benedict Menni Psychosocial Rehabilitation Centre</p>
+    <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
     <form method="post">
       <input type="hidden" name="action" value="login">
       <label for="password">Password</label>
       <input type="password" id="password" name="password" required autofocus autocomplete="current-password">
       <button type="submit">Sign in</button>
     </form>
-  <?php else: ?>
-    <form method="post" enctype="multipart/form-data">
-      <input type="hidden" name="action" value="publish">
-      <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
-      <?php if ($editing): ?>
-        <input type="hidden" name="edit_slug" value="<?= e($editing['slug']) ?>">
-        <input type="hidden" name="edit_locale" value="<?= e($editing['locale']) ?>">
-        <input type="hidden" name="orig_image" value="<?= e($editing['fields']['image']) ?>">
-      <?php endif; ?>
+  </div>
+</div>
 
-      <div class="row">
-        <div>
-          <label for="locale">Article language</label>
-          <?php if ($editing): ?>
-            <input type="text" value="<?= e(LOCALES[$editing['locale']]) ?>" readonly>
-          <?php else: ?>
-            <select id="locale" name="locale">
-              <?php foreach (LOCALES as $code => $label): ?>
-                <option value="<?= e($code) ?>"><?= e($label) ?></option>
-              <?php endforeach; ?>
-            </select>
-          <?php endif; ?>
-        </div>
-        <div>
-          <label for="date">Date</label>
-          <input type="date" id="date" name="date" value="<?= e($editing ? $editing['fields']['date'] : gmdate('Y-m-d')) ?>">
-        </div>
-      </div>
+<?php else: ?>
+<div class="layout">
+  <aside class="side">
+    <p class="side-brand">News Panel<span>Benedict Menni Centre</span></p>
+    <a class="btn-new" href="panel.php">+ New article</a>
 
-      <label for="title">Title</label>
-      <input type="text" id="title" name="title" required maxlength="140" value="<?= e($editing ? $editing['fields']['title'] : '') ?>">
-      <?php if ($editing): ?><p class="hint">Editing <strong><?= e($editing['slug']) ?>.md</strong> — the URL stays the same.</p><?php endif; ?>
-
-      <label for="category">Category</label>
-      <select id="category" name="category">
-        <?php
-        $cats = CATEGORIES;
-        $cur = $editing ? $editing['fields']['category'] : '';
-        if ($cur !== '' && !in_array($cur, $cats, true)) array_unshift($cats, $cur);
-        foreach ($cats as $c): ?>
-          <option <?= $c === $cur ? 'selected' : '' ?>><?= e($c) ?></option>
+    <nav aria-label="Existing articles">
+      <p class="side-label">Articles</p>
+      <?php if ($articlesByLocale): ?>
+        <?php foreach ($articlesByLocale as $loc => $items): ?>
+          <p class="side-group"><?= e(strtoupper($loc)) ?> — <?= e(LOCALES[$loc] ?? $loc) ?></p>
+          <?php foreach ($items as $a):
+            $key = $a['locale'] . '/' . $a['slug']; ?>
+            <div class="side-item<?= $key === $editKey ? ' active' : '' ?>">
+              <a class="slug" href="?edit=<?= e($key) ?>"><?= e($a['slug']) ?></a>
+              <a class="view" href="https://hospitalarias.in<?= e(LOCALE_NEWS_BASE[$a['locale']]) . e($a['slug']) ?>/" target="_blank" rel="noopener" title="View on site">↗</a>
+              <form class="inline" method="post" onsubmit="return confirm('Delete &quot;<?= e($a['slug']) ?>&quot; (<?= e($a['locale']) ?>)? This cannot be undone.');">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+                <input type="hidden" name="path" value="<?= e($a['path']) ?>">
+                <button type="submit" class="del" title="Delete">×</button>
+              </form>
+            </div>
+          <?php endforeach; ?>
         <?php endforeach; ?>
-      </select>
-
-      <label for="description">Short description</label>
-      <input type="text" id="description" name="description" required maxlength="200" value="<?= e($editing ? $editing['fields']['description'] : '') ?>">
-      <p class="hint">One or two sentences — shown on the news card.</p>
-
-      <label for="photo">Photo</label>
-      <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp" <?= $editing ? '' : 'required' ?>>
-      <p class="hint"><?= $editing ? 'Leave empty to keep the current photo.' : 'JPG, PNG or WebP, up to 12 MB. Large photos are resized automatically.' ?></p>
-      <?php if ($editing && $editing['fields']['image'] !== ''): ?>
-        <p class="hint">Current: <a href="https://hospitalarias.in<?= e($editing['fields']['image']) ?>" target="_blank" rel="noopener"><?= e($editing['fields']['image']) ?></a></p>
+      <?php else: ?>
+        <p class="side-empty">No articles yet — publish the first one.</p>
       <?php endif; ?>
+    </nav>
 
-      <label for="image_alt">Photo description</label>
-      <input type="text" id="image_alt" name="image_alt" required maxlength="160" value="<?= e($editing ? $editing['fields']['imageAlt'] : '') ?>">
-      <p class="hint">Describe the photo for blind readers, e.g. "Residents at the garden workshop".</p>
-
-      <label for="body">Article text</label>
-      <textarea id="body" name="body" required><?= e($editing ? $editing['body'] : '') ?></textarea>
-      <p class="hint">Plain text. Leave an empty line between paragraphs.</p>
-
-      <button type="submit"><?= $editing ? 'Update article' : 'Publish' ?></button>
-    </form>
-    <div class="links">
-      <?php if ($editing): ?><a href="panel.php">+ New article</a><?php endif; ?>
+    <div class="side-foot">
       <a href="https://hospitalarias.in/en/news/" target="_blank" rel="noopener">View news page ↗</a>
       <a href="?logout=1">Sign out</a>
     </div>
-  <?php endif; ?>
+  </aside>
+
+  <main class="main">
+    <div class="card">
+      <h1><?= $editing ? 'Edit article' : 'New article' ?></h1>
+      <p class="sub"><?= $editing
+        ? 'Editing ' . e($editing['slug']) . '.md — the URL stays the same.'
+        : 'Publish directly to the website (~3-5 min to appear).' ?></p>
+
+      <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
+      <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
+
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="publish">
+        <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+        <?php if ($editing): ?>
+          <input type="hidden" name="edit_slug" value="<?= e($editing['slug']) ?>">
+          <input type="hidden" name="edit_locale" value="<?= e($editing['locale']) ?>">
+          <input type="hidden" name="orig_image" value="<?= e($editing['fields']['image']) ?>">
+        <?php endif; ?>
+
+        <div class="row">
+          <div>
+            <label for="locale">Article language</label>
+            <?php if ($editing): ?>
+              <input type="text" value="<?= e(LOCALES[$editing['locale']]) ?>" readonly>
+            <?php else: ?>
+              <select id="locale" name="locale">
+                <?php foreach (LOCALES as $code => $label): ?>
+                  <option value="<?= e($code) ?>"><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+            <?php endif; ?>
+          </div>
+          <div>
+            <label for="date">Date</label>
+            <input type="date" id="date" name="date" value="<?= e($editing ? $editing['fields']['date'] : gmdate('Y-m-d')) ?>">
+          </div>
+        </div>
+
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required maxlength="140" value="<?= e($editing ? $editing['fields']['title'] : '') ?>">
+
+        <label for="category">Category</label>
+        <select id="category" name="category">
+          <?php
+          $cats = CATEGORIES;
+          $cur = $editing ? $editing['fields']['category'] : '';
+          if ($cur !== '' && !in_array($cur, $cats, true)) array_unshift($cats, $cur);
+          foreach ($cats as $c): ?>
+            <option <?= $c === $cur ? 'selected' : '' ?>><?= e($c) ?></option>
+          <?php endforeach; ?>
+        </select>
+
+        <label for="description">Short description</label>
+        <input type="text" id="description" name="description" required maxlength="200" value="<?= e($editing ? $editing['fields']['description'] : '') ?>">
+        <p class="hint">One or two sentences — shown on the news card.</p>
+
+        <label for="photo">Photo</label>
+        <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp" <?= $editing ? '' : 'required' ?>>
+        <p class="hint"><?= $editing ? 'Leave empty to keep the current photo.' : 'JPG, PNG or WebP, up to 12 MB. Large photos are resized automatically.' ?></p>
+        <?php if ($editing && $editing['fields']['image'] !== ''): ?>
+          <p class="hint">Current: <a href="https://hospitalarias.in<?= e($editing['fields']['image']) ?>" target="_blank" rel="noopener"><?= e($editing['fields']['image']) ?></a></p>
+        <?php endif; ?>
+
+        <label for="image_alt">Photo description</label>
+        <input type="text" id="image_alt" name="image_alt" required maxlength="160" value="<?= e($editing ? $editing['fields']['imageAlt'] : '') ?>">
+        <p class="hint">Describe the photo for blind readers, e.g. "Residents at the garden workshop".</p>
+
+        <label for="body">Article text</label>
+        <textarea id="body" name="body" required><?= e($editing ? $editing['body'] : '') ?></textarea>
+        <p class="hint">Plain text. Leave an empty line between paragraphs.</p>
+
+        <button type="submit"><?= $editing ? 'Update article' : 'Publish' ?></button>
+      </form>
+      <div class="links">
+        <?php if ($editing): ?><a href="panel.php">+ New article</a><?php endif; ?>
+        <a href="https://hospitalarias.in/en/news/" target="_blank" rel="noopener">View news page ↗</a>
+        <a href="?logout=1">Sign out</a>
+      </div>
+    </div>
+  </main>
 </div>
+<?php endif; ?>
+
 </body>
 </html>
