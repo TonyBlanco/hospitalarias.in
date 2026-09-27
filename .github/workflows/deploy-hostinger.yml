@@ -39,6 +39,9 @@ jobs:
         run: test -n "$HOSTINGER_API_TOKEN"
 
       - name: Build Astro site
+        env:
+          PUBLIC_GA_ID: ${{ secrets.GA_MEASUREMENT_ID }}
+          PUBLIC_GSC_VERIFICATION: ${{ secrets.GSC_VERIFICATION }}
         run: npm run build
 
       - name: Write panel config
