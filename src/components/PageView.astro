@@ -1,5 +1,6 @@
 ---
 import { type Locale, type PageData } from '@/data/pages';
+import newsletters from '@/data/newsletters.json';
 
 type Props = { page: PageData; locale: Locale };
 const { page } = Astro.props;
@@ -38,6 +39,16 @@ const isHome = page.id === 'home';
         {section.items && <ul>{section.items.map((item) => <li>{item}</li>)}</ul>}
       </article>
     ))}
+    {page.id === 'newsletter' && newsletters.length > 0 && (
+      <ul class="newsletter-list">
+        {newsletters.map((n: { file: string; title: string; date?: string }) => (
+          <li>
+            <a href={n.file} target="_blank" rel="noopener">{n.title}</a>
+            {n.date && <time datetime={n.date}>{n.date}</time>}
+          </li>
+        ))}
+      </ul>
+    )}
     {page.ctas.length > 0 && (
       <div class="hero-actions">
         {page.ctas.map((cta) => <a class:list={['button', cta.variant === 'secondary' && 'secondary']} href={cta.href}>{cta.label}</a>)}

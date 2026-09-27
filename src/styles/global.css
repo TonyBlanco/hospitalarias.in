@@ -915,6 +915,42 @@ img {
   }
 }
 
+/* Announcement bar — set from the panel via src/data/notice.json */
+.notice-bar {
+  background: var(--accent, #8c1d40);
+  color: #fff;
+  font-size: 0.92rem;
+  padding: 0.55rem 0;
+  text-align: center;
+}
+
+.notice-bar a {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* Newsletter downloads list */
+.newsletter-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.newsletter-list li {
+  border-bottom: 1px solid var(--line, #d8d5cf);
+  padding: 0.75rem 0;
+}
+
+.newsletter-list a {
+  font-weight: 700;
+}
+
+.newsletter-list time {
+  color: var(--muted, #6b655c);
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
 /* Breadcrumbs */
 .breadcrumbs {
   font-size: 0.82rem;

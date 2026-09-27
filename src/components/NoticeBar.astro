@@ -1,0 +1,13 @@
+---
+import notice from '@/data/notice.json';
+
+const enabled = notice.enabled && notice.text !== '';
+---
+
+{enabled && (
+  <aside class="notice-bar">
+    <div class="container">
+      {notice.href ? <a href={notice.href}>{notice.text}</a> : notice.text}
+    </div>
+  </aside>
+)}

@@ -1,6 +1,7 @@
 ---
 import Header from '@/components/Header.astro';
 import Footer from '@/components/Footer.astro';
+import NoticeBar from '@/components/NoticeBar.astro';
 import '@/styles/global.css';
 import type { Locale, PageId } from '@/data/pages';
 import { alternateLinks, crumbPath, type Crumb } from '@/utils/seo';
@@ -118,6 +119,7 @@ const breadcrumbSchema = trail.length > 1
       </script>
     )}
     <Header locale={locale} pageId={pageId} />
+    <NoticeBar />
     <main id="main">
       {trail.length > 1 && (
         <nav class="breadcrumbs" aria-label="Breadcrumb">

@@ -1,6 +1,9 @@
 ---
 import { routes, type Locale, type PageData } from '@/data/pages';
+import heroesJson from '@/data/page-heroes.json';
 import { t } from '@/data/i18n';
+
+const heroes = heroesJson as Record<string, string>;
 
 type Props = { page: PageData; locale: Locale };
 const { page, locale } = Astro.props;
@@ -80,7 +83,7 @@ const heroCtas = page.ctas.map((cta, i) => ({
       </a>
     </div>
     <div class="founders-teaser-image">
-      <img src="/images/2025/07/FUNDADORAS-1920.jpg" alt={t(locale, 'foundersAlt')} loading="lazy" />
+      <img src={heroes['home-main'] ?? '/images/2025/07/FUNDADORAS-1920.jpg'} alt={t(locale, 'foundersAlt')} loading="lazy" />
     </div>
   </div>
 </section>

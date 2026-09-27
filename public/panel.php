@@ -41,6 +41,11 @@ const LOCALES = ['en' => 'English', 'es' => 'Español (Spanish)', 'hi' => 'ह�
 const LOCALE_NEWS_BASE = ['en' => '/en/news/', 'es' => '/es/noticias/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/'];
 const MONTHS = ['01' => 'Jan', '02' => 'Feb', '03' => 'Mar', '04' => 'Apr', '05' => 'May', '06' => 'Jun', '07' => 'Jul', '08' => 'Aug', '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Dec'];
 const GALLERY_JSON = 'src/data/gallery.json';
+const NOTICE_JSON = 'src/data/notice.json';
+const NEWS_JSON = 'src/data/newsletters.json';
+const HEROES_JSON = 'src/data/page-heroes.json';
+const MAX_PDF = 20 * 1024 * 1024; // 20 MB newsletter PDFs
+const HERO_SLOTS = ['home-main' => 'Home — main photo'];
 const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB photos
 const MAX_VIDEO_UPLOAD = 45 * 1024 * 1024; // 45 MB videos — bigger belongs on YouTube
 
@@ -395,6 +400,138 @@ if ($logged && isset($_POST['action']) && str_starts_with((string) $_POST['actio
     }
 }
 
+// ---------- Announcement bar ----------
+if ($logged && isset($_POST['action']) && $_POST['action'] === 'notice_save') {
+    if (!$csrfOk()) {
+        $err = 'Session expired — please try again.';
+    } elseif (!$config) {
+        $err = 'Panel is not configured yet.';
+    } else {
+        $href = trim((string) ($_POST['href'] ?? ''));
+        if ($href !== '' && !preg_match('#^(https?://|/)[^\s]+$#i', $href)) $href = '';
+        $notice = [
+            'enabled' => !empty($_POST['enabled']),
+            'text' => trim((string) ($_POST['text'] ?? '')),
+            'href' => $href,
+        ];
+        [$ok, $errN] = ghCommit($config, NOTICE_JSON, json_encode($notice, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'site: announcement update');
+        if ($ok) $msg = $notice['enabled'] ? 'Announcement is now ON — visible in ~3-5 minutes.' : 'Announcement is OFF — it disappears in ~3-5 minutes.';
+        else $err = $errN;
+    }
+}
+
+// ---------- Newsletter PDFs ----------
+if ($logged && isset($_POST['action']) && str_starts_with((string) $_POST['action'], 'newsletter_')) {
+    if (!$csrfOk()) {
+        $err = 'Session expired — please try again.';
+    } elseif (!$config) {
+        $err = 'Panel is not configured yet.';
+    } else {
+        @set_time_limit(300);
+        $items = ghGetJsonFile($config, NEWS_JSON);
+
+        if ($_POST['action'] === 'newsletter_add') {
+            $title = trim((string) ($_POST['title'] ?? ''));
+            $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['date'] ?? '')) ? (string) $_POST['date'] : gmdate('Y-m-d');
+            $fileErr = !empty($_FILES['pdf']) ? uploadError($_FILES['pdf']) : '';
+            $hasFile = !empty($_FILES['pdf']) && $_FILES['pdf']['error'] === UPLOAD_ERR_OK;
+            if ($fileErr !== '') {
+                $err = 'The PDF could not be uploaded: ' . $fileErr;
+            } elseif (!$hasFile) {
+                $err = 'Please choose a PDF file.';
+            } elseif ($_FILES['pdf']['size'] > MAX_PDF) {
+                $err = 'The PDF is too large (max 20 MB).';
+            } elseif ($title === '') {
+                $err = 'Please write a title, e.g. "Newsletter — January 2027".';
+            } elseif ((string) (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['pdf']['tmp_name']) !== 'application/pdf') {
+                $err = 'The file must be a PDF.';
+            } else {
+                $base = slugify($title);
+                $slug = $base;
+                $i = 2;
+                $used = array_column($items, 'file');
+                while (in_array("/newsletters/{$slug}.pdf", $used, true)) $slug = $base . '-' . $i++;
+                $path = "/newsletters/{$slug}.pdf";
+                [$okF, $errF] = ghCommit($config, 'public' . $path, (string) file_get_contents($_FILES['pdf']['tmp_name']), "newsletter: {$title}");
+                if (!$okF) {
+                    $err = $errF;
+                } else {
+                    array_unshift($items, ['file' => $path, 'title' => $title, 'date' => $date]);
+                    [$okJ, $errJ] = ghCommit($config, NEWS_JSON, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'newsletter: index update');
+                    if ($okJ) $msg = 'Newsletter added — listed on the newsletter page in ~3-5 minutes.';
+                    else $err = $errJ;
+                }
+            }
+        } elseif ($_POST['action'] === 'newsletter_delete') {
+            $file = (string) ($_POST['file'] ?? '');
+            $keep = array_values(array_filter($items, fn($it) => ($it['file'] ?? '') !== $file));
+            if (!preg_match('#^/newsletters/[a-z0-9-]+\.pdf$#', $file)) {
+                $err = 'Invalid file.';
+            } elseif (count($keep) === count($items)) {
+                $err = 'That newsletter is not in the index.';
+            } else {
+                [$okJ, $errJ] = ghCommit($config, NEWS_JSON, json_encode($keep, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'newsletter: remove');
+                if (!$okJ) {
+                    $err = $errJ;
+                } else {
+                    ghDelete($config, 'public' . $file, 'newsletter: delete pdf'); // best effort
+                    $msg = 'Newsletter removed. The page updates in ~3-5 minutes.';
+                }
+            }
+        }
+    }
+}
+
+// ---------- Page hero photos ----------
+if ($logged && isset($_POST['action']) && str_starts_with((string) $_POST['action'], 'hero_')) {
+    if (!$csrfOk()) {
+        $err = 'Session expired — please try again.';
+    } elseif (!$config) {
+        $err = 'Panel is not configured yet.';
+    } else {
+        @set_time_limit(300);
+        $heroes = ghGetJsonFile($config, HEROES_JSON);
+        $slot = (string) ($_POST['slot'] ?? '');
+
+        if (!isset(HERO_SLOTS[$slot])) {
+            $err = 'Unknown page photo.';
+        } elseif ($_POST['action'] === 'hero_reset') {
+            unset($heroes[$slot]);
+            [$okJ, $errJ] = ghCommit($config, HEROES_JSON, json_encode($heroes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'site: reset page photo');
+            if ($okJ) $msg = 'Photo reset to the original. Live in ~3-5 minutes.';
+            else $err = $errJ;
+        } elseif ($_POST['action'] === 'hero_save') {
+            $fileErr = !empty($_FILES['photo']) ? uploadError($_FILES['photo']) : '';
+            $hasFile = !empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
+            if ($fileErr !== '') {
+                $err = 'The photo could not be uploaded: ' . $fileErr;
+            } elseif (!$hasFile) {
+                $err = 'Please choose a photo.';
+            } elseif ($_FILES['photo']['size'] > MAX_UPLOAD) {
+                $err = 'The photo is too large (max 12 MB).';
+            } else {
+                $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['photo']['tmp_name']);
+                $image = processImage($_FILES['photo']['tmp_name'], $mime);
+                if (!$image) {
+                    $err = 'The photo must be a JPG, PNG or WebP image.';
+                } else {
+                    [$bin] = $image;
+                    $src = "/images/pages/{$slot}.jpg";
+                    [$okImg, $errImg] = ghCommit($config, 'public' . $src, (string) $bin, "site: photo for {$slot}");
+                    if (!$okImg) {
+                        $err = $errImg;
+                    } else {
+                        $heroes[$slot] = $src;
+                        [$okJ, $errJ] = ghCommit($config, HEROES_JSON, json_encode($heroes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'site: page photo update');
+                        if ($okJ) $msg = 'Photo changed — visible in ~3-5 minutes.';
+                        else $err = $errJ;
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ---------- Publish / Update ----------
 if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
     if (!$csrfOk()) {
@@ -531,9 +668,20 @@ if ($articles) {
 }
 $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
 
-// Gallery view state + items
-$view = (($_GET['view'] ?? '') === 'gallery') ? 'gallery' : 'article';
-$galleryItems = ($logged && $config) ? ghGetJsonFile($config, GALLERY_JSON) : [];
+// View state + bulk JSON fetch (parallel) for display
+$view = (string) ($_GET['view'] ?? 'article');
+if (!in_array($view, ['article', 'gallery', 'notice', 'newsletter', 'hero'], true)) $view = 'article';
+$jsonData = [];
+if ($logged && $config) {
+    foreach (ghGetFiles($config, [GALLERY_JSON, NOTICE_JSON, NEWS_JSON, HEROES_JSON]) as $p => $c) {
+        $d = json_decode($c, true);
+        if (is_array($d)) $jsonData[$p] = $d;
+    }
+}
+$galleryItems = $jsonData[GALLERY_JSON] ?? [];
+$noticeData = $jsonData[NOTICE_JSON] ?? ['enabled' => false, 'text' => '', 'href' => ''];
+$newsItems = $jsonData[NEWS_JSON] ?? [];
+$heroesData = $jsonData[HEROES_JSON] ?? [];
 
 // Visit stats written by track.php (stored outside public_html)
 $statsFile = dirname(__DIR__) . '/panel-stats.json';
@@ -676,6 +824,9 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   .sub { color: #6b655c; font-size: .9rem; margin: 0 0 20px; }
   label { display: block; font-weight: 600; font-size: .85rem; margin: 16px 0 4px; }
   input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid #d8d2c8; border-radius: 8px; font: inherit; font-size: 1rem; background: #fff; }
+  input[type=checkbox] { width: auto; }
+  label.check { display: flex; align-items: center; gap: 8px; }
+  .hero-form { padding: 4px 0 14px; border-bottom: 1px solid #f0ece5; }
   input[readonly] { background: #f4f2ef; }
   textarea { min-height: 160px; resize: vertical; }
   .hint { font-size: .78rem; color: #6b655c; margin-top: 3px; }
@@ -722,6 +873,9 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
     <p class="side-brand">News Panel<span>Benedict Menni Centre</span></p>
     <a class="btn-new" href="panel.php">+ New article</a>
     <a class="btn-gallery" href="?view=gallery">Photos — gallery (<?= count($galleryItems) ?>)</a>
+    <a class="btn-gallery" href="?view=notice">Announcement<?= !empty($noticeData['enabled']) ? ' · ON' : '' ?></a>
+    <a class="btn-gallery" href="?view=newsletter">Newsletters (<?= count($newsItems) ?>)</a>
+    <a class="btn-gallery" href="?view=hero">Page photos</a>
 
     <div class="side-stats" aria-label="Visit statistics">
       <p class="side-label">Visits</p>
@@ -824,6 +978,127 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
       <div class="links">
         <a href="panel.php">+ New article</a>
         <a href="https://hospitalarias.in/en/gallery/" target="_blank" rel="noopener">View gallery ↗</a>
+        <a href="?logout=1">Sign out</a>
+      </div>
+    </div>
+    <?php elseif ($view === 'notice'): ?>
+    <div class="card">
+      <h1>Announcement bar</h1>
+      <p class="sub">Shows a coloured banner at the top of every page — for campaigns or urgent news.</p>
+
+      <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
+      <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
+
+      <form method="post">
+        <input type="hidden" name="action" value="notice_save">
+        <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+
+        <label class="check"><input type="checkbox" name="enabled" value="1" <?= !empty($noticeData['enabled']) ? 'checked' : '' ?>> Show the announcement on the website</label>
+
+        <label for="notice-text">Text</label>
+        <input type="text" id="notice-text" name="text" maxlength="160" value="<?= e((string) ($noticeData['text'] ?? '')) ?>" placeholder="e.g. Christmas donation campaign — help us reach the goal">
+
+        <label for="notice-href">Link (optional)</label>
+        <input type="text" id="notice-href" name="href" value="<?= e((string) ($noticeData['href'] ?? '')) ?>" placeholder="/en/get-involved/donate/ or https://…">
+        <p class="hint">Where the banner takes you when clicked — a page on this site or a full link.</p>
+
+        <button type="submit">Save announcement</button>
+      </form>
+
+      <div class="links">
+        <a href="panel.php">+ New article</a>
+        <a href="https://hospitalarias.in/" target="_blank" rel="noopener">View site ↗</a>
+        <a href="?logout=1">Sign out</a>
+      </div>
+    </div>
+    <?php elseif ($view === 'newsletter'): ?>
+    <div class="card">
+      <h1>Newsletters</h1>
+      <p class="sub">Upload PDF bulletins — they appear listed on the newsletter page.</p>
+
+      <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
+      <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
+
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="newsletter_add">
+        <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+
+        <label for="pdf">PDF file</label>
+        <input type="file" id="pdf" name="pdf" accept="application/pdf" required>
+        <p class="hint">PDF only, up to 20 MB.</p>
+
+        <div class="row">
+          <div>
+            <label for="ntitle">Title</label>
+            <input type="text" id="ntitle" name="title" required maxlength="120" placeholder="e.g. Newsletter — January 2027">
+          </div>
+          <div>
+            <label for="ndate">Date</label>
+            <input type="date" id="ndate" name="date" value="<?= gmdate('Y-m-d') ?>">
+          </div>
+        </div>
+
+        <button type="submit">Add newsletter</button>
+      </form>
+
+      <?php if ($newsItems): ?>
+      <div class="gal-list">
+        <?php foreach ($newsItems as $n): ?>
+          <div class="gal-row">
+            <span class="cap" title="<?= e($n['file'] ?? '') ?>"><?= e($n['title'] ?? '') ?><?= !empty($n['date']) ? ' · ' . e((string) $n['date']) : '' ?></span>
+            <a class="view" href="https://hospitalarias.in<?= e($n['file'] ?? '') ?>" target="_blank" rel="noopener" title="Open PDF">↗</a>
+            <form class="inline" method="post" onsubmit="return confirm('Remove &quot;<?= e($n['title'] ?? '') ?>&quot;? The PDF file is deleted too.');">
+              <input type="hidden" name="action" value="newsletter_delete">
+              <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+              <input type="hidden" name="file" value="<?= e($n['file'] ?? '') ?>">
+              <button type="submit" class="del" title="Remove">×</button>
+            </form>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <?php else: ?>
+        <p class="hint" style="margin-top:16px">No newsletters uploaded yet.</p>
+      <?php endif; ?>
+
+      <div class="links">
+        <a href="panel.php">+ New article</a>
+        <a href="https://hospitalarias.in/en/newsletter/" target="_blank" rel="noopener">View newsletter page ↗</a>
+        <a href="?logout=1">Sign out</a>
+      </div>
+    </div>
+    <?php elseif ($view === 'hero'): ?>
+    <div class="card">
+      <h1>Page photos</h1>
+      <p class="sub">Swap the main photo of a page — upload a new one, or reset to the original.</p>
+
+      <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
+      <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
+
+      <?php foreach (HERO_SLOTS as $slot => $label):
+        $cur = $heroesData[$slot] ?? ''; ?>
+        <div class="gal-row" style="align-items:flex-start">
+          <div class="cap">
+            <b><?= e($label) ?></b><br>
+            <span class="hint"><?= $cur !== '' ? 'Custom: ' . e($cur) : 'Using the original photo' ?></span>
+          </div>
+        </div>
+        <form method="post" enctype="multipart/form-data" class="hero-form">
+          <input type="hidden" name="action" value="hero_save">
+          <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+          <input type="hidden" name="slot" value="<?= e($slot) ?>">
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button type="submit" style="flex:1">Change photo</button>
+            <?php if ($cur !== ''): ?>
+              <button type="submit" formnovalidate name="action" value="hero_reset" style="flex:1;background:#fff;color:#7a2e2e;border:1px solid #d8d2c8">Reset to original</button>
+            <?php endif; ?>
+          </div>
+        </form>
+      <?php endforeach; ?>
+
+      <div class="links">
+        <a href="panel.php">+ New article</a>
+        <a href="https://hospitalarias.in/" target="_blank" rel="noopener">View site ↗</a>
         <a href="?logout=1">Sign out</a>
       </div>
     </div>
