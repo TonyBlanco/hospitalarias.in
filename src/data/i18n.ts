@@ -4,6 +4,7 @@ const strings = {
   en: {
     // Nav
     navLabel: 'Main navigation',
+    menu: 'Menu',
     home: 'Home',
     about: 'About',
     missionValues: 'Mission & Values',
@@ -87,6 +88,7 @@ const strings = {
   hi: {
     // Nav
     navLabel: 'मुख्य नेविगेशन',
+    menu: 'मेनू',
     home: 'होम',
     about: 'हमारे बारे में',
     missionValues: 'मिशन और मूल्य',
@@ -170,6 +172,7 @@ const strings = {
   ml: {
     // Nav
     navLabel: 'പ്രധാന നാവിഗേഷൻ',
+    menu: 'മെനു',
     home: 'ഹോം',
     about: 'ഞങ്ങളെ കുറിച്ച്',
     missionValues: 'ദൗത്യം & മൂല്യങ്ങൾ',
@@ -253,6 +256,7 @@ const strings = {
   es: {
     // Nav
     navLabel: 'Navegación principal',
+    menu: 'Menú',
     home: 'Inicio',
     about: 'Nosotros',
     missionValues: 'Misión y Valores',

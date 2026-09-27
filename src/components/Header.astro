@@ -18,7 +18,11 @@ const langLabels: Record<Locale, string> = { en: 'EN', hi: 'हिं', ml: 'ML'
     <a class="brand" href={routes[locale].home}>
       <img src={logoSrc} alt={logoAlt} class="site-logo" width="160" height="auto" />
     </a>
-    <nav class="nav" aria-label={t(locale, 'navLabel')}>
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+      <span class="menu-bars" aria-hidden="true"></span>
+      <span class="menu-label">{t(locale, 'menu')}</span>
+    </button>
+    <nav class="nav" id="site-nav" aria-label={t(locale, 'navLabel')}>
       {
         nav.map((item) =>
           item.children ? (
@@ -45,3 +49,14 @@ const langLabels: Record<Locale, string> = { en: 'EN', hi: 'हिं', ml: 'ML'
     </nav>
   </div>
 </header>
+
+<script is:inline>
+  const menuBtn = document.querySelector('.menu-toggle');
+  const siteNav = document.getElementById('site-nav');
+  if (menuBtn && siteNav) {
+    menuBtn.addEventListener('click', () => {
+      const open = siteNav.classList.toggle('nav-open');
+      menuBtn.setAttribute('aria-expanded', String(open));
+    });
+  }
+</script>
