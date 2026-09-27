@@ -305,8 +305,8 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
             $err = 'Please attach a photo (JPG, PNG or WebP, up to 12 MB).';
         } elseif ($hasVideo && $_FILES['video']['size'] > MAX_VIDEO_UPLOAD) {
             $err = 'The video is too large (max 45 MB) — for longer videos, upload to YouTube and paste the link instead.';
-        } elseif ($videoUrl !== '' && !preg_match('#^https?://(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com|vimeo\.com|player\.vimeo\.com)/#i', $videoUrl)) {
-            $err = 'The video link must be a YouTube or Vimeo URL.';
+        } elseif ($videoUrl !== '' && !preg_match('#^https?://(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com|vimeo\.com|player\.vimeo\.com|instagram\.com)/#i', $videoUrl)) {
+            $err = 'The video link must be a YouTube, Vimeo or Instagram URL.';
         } else {
             $slug = $isEdit ? $editSlug : slugify($title);
             $imgWebPath = $origImage;
@@ -580,9 +580,9 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
           <p class="hint">Current: <a href="https://hospitalarias.in<?= e($editing['fields']['image']) ?>" target="_blank" rel="noopener"><?= e($editing['fields']['image']) ?></a></p>
         <?php endif; ?>
 
-        <label for="video_url">Video — YouTube or Vimeo link (optional)</label>
-        <input type="url" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=…" value="<?= e($editing && str_starts_with($editing['fields']['video'], 'http') ? $editing['fields']['video'] : '') ?>">
-        <p class="hint">Best option for long videos — upload to YouTube as "unlisted" and paste the link here.</p>
+        <label for="video_url">Video — YouTube, Vimeo or Instagram link (optional)</label>
+        <input type="url" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=… or https://instagram.com/reel/…" value="<?= e($editing && str_starts_with($editing['fields']['video'], 'http') ? $editing['fields']['video'] : '') ?>">
+        <p class="hint">Paste a YouTube/Vimeo link, or an Instagram post/reel link to show it inside the article.</p>
 
         <label for="video">Or upload a video file</label>
         <input type="file" id="video" name="video" accept="video/mp4,video/webm,video/quicktime">

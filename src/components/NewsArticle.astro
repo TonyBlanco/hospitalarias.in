@@ -18,12 +18,16 @@ const dateStr = entry.data.date.toLocaleDateString(localeMap[locale] ?? 'en-GB',
 const video = entry.data.video ?? '';
 const yt = video.match(/(?:youtube\.com\/(?:watch\?[^#]*v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
 const vm = video.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+const ig = video.match(/instagram\.com\/(p|reel|reels|tv)\/([\w-]+)/);
 const videoEmbed = yt
   ? `https://www.youtube-nocookie.com/embed/${yt[1]}`
   : vm
     ? `https://player.vimeo.com/video/${vm[1]}`
-    : null;
+    : ig
+      ? `https://www.instagram.com/${ig[1]}/${ig[2]}/embed`
+      : null;
 const videoFile = video.startsWith('/') ? mediaPath(video) : null;
+const canonical = new URL(Astro.url.pathname, 'https://hospitalarias.in').toString();
 ---
 
 <section class="section alt">
@@ -39,11 +43,31 @@ const videoFile = video.startsWith('/') ? mediaPath(video) : null;
     <img src={mediaPath(entry.data.image)} alt={entry.data.imageAlt} />
     {videoFile && <video class="article-video" src={videoFile} controls playsinline preload="metadata" />}
     {videoEmbed && (
-      <div class="video-embed">
+      <div class:list={['video-embed', { 'ig-embed': ig }]}>
         <iframe src={videoEmbed} title={entry.data.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen />
       </div>
     )}
     <Content />
-    <p><a href={routes[locale].news}>{t(locale, 'backToNews')}</a></p>
+    <p class="article-actions">
+      <a href={routes[locale].news}>{t(locale, 'backToNews')}</a>
+      <button type="button" class="share-btn" data-url={canonical} data-copied={t(locale, 'linkCopied')}>{t(locale, 'share')}</button>
+    </p>
   </div>
 </section>
+
+<script is:inline>
+  const shareBtn = document.querySelector('.share-btn');
+  if (shareBtn) {
+    shareBtn.addEventListener('click', async () => {
+      const url = shareBtn.dataset.url;
+      if (navigator.share) {
+        try { await navigator.share({ title: document.title, url }); } catch {}
+      } else {
+        try {
+          await navigator.clipboard.writeText(url);
+          shareBtn.textContent = shareBtn.dataset.copied;
+        } catch {}
+      }
+    });
+  }
+</script>

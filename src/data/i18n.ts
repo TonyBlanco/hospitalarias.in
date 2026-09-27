@@ -77,6 +77,8 @@ const strings = {
     newsEmpty: 'No news articles yet. Check back soon for updates.',
     readMore: 'Read more',
     backToNews: '← All news',
+    share: 'Share ↗',
+    linkCopied: 'Link copied',
 
     // Accessibility
     skipToContent: 'Skip to content',
@@ -161,6 +163,8 @@ const strings = {
     newsEmpty: 'अभी कोई समाचार नहीं। जल्द ही अपडेट के लिए देखें।',
     readMore: 'और पढ़ें',
     backToNews: '← सभी समाचार',
+    share: 'शेयर करें ↗',
+    linkCopied: 'लिंक कॉपी हुआ',
 
     // Accessibility
     skipToContent: 'सामग्री पर जाएँ',
@@ -245,6 +249,8 @@ const strings = {
     newsEmpty: 'ഇപ്പോൾ വാർത്തകളൊന്നുമില്ല. അപ്‌ഡേറ്റുകൾക്കായി ഉടൻ തന്നെ വീണ്ടും സന്ദർശിക്കുക.',
     readMore: 'കൂടുതൽ വായിക്കുക',
     backToNews: '← എല്ലാ വാർത്തകളും',
+    share: 'ഷെയർ ചെയ്യുക ↗',
+    linkCopied: 'ലിങ്ക് പകർത്തി',
 
     // Accessibility
     skipToContent: 'ഉള്ളടക്കത്തിലേക്ക് പോകുക',
@@ -330,6 +336,8 @@ const strings = {
     newsEmpty: 'Aún no hay noticias. Vuelve pronto para ver novedades.',
     readMore: 'Leer más',
     backToNews: '← Todas las noticias',
+    share: 'Compartir ↗',
+    linkCopied: 'Enlace copiado',
 
     // Accessibility
     skipToContent: 'Saltar al contenido',

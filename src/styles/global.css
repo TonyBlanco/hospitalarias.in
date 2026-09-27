@@ -808,6 +808,46 @@ img {
   width: 100%;
 }
 
+/* Instagram embeds are portrait/tall, not 16:9 */
+.ig-embed {
+  aspect-ratio: auto;
+  margin-inline: auto;
+  max-width: 540px;
+}
+
+.ig-embed iframe {
+  height: 700px;
+}
+
+@media (max-width: 600px) {
+  .ig-embed iframe {
+    height: 560px;
+  }
+}
+
+/* Article actions (back link + share) */
+.article-actions {
+  align-items: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.share-btn {
+  background: none;
+  border: 1px solid var(--line, #d8d5cf);
+  border-radius: 999px;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 1rem;
+}
+
+.share-btn:hover {
+  border-color: var(--accent, #8c1d40);
+}
+
 /* Breadcrumbs */
 .breadcrumbs {
   font-size: 0.82rem;
