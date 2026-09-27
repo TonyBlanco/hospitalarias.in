@@ -12,11 +12,17 @@ type Props = {
   locale: Locale;
   pageId: PageId;
   crumbs?: Crumb[];
+  ogType?: 'website' | 'article';
+  ogImage?: string;
+  publishedTime?: string;
+  extraSchema?: Record<string, unknown>;
 };
 
-const { title, description, locale, pageId, crumbs } = Astro.props;
+const { title, description, locale, pageId, crumbs, ogType, ogImage, publishedTime, extraSchema } = Astro.props;
 const canonical = new URL(Astro.url.pathname, 'https://hospitalarias.in').toString();
 const alternates = alternateLinks(pageId);
+const ogLocaleMap: Record<Locale, string> = { en: 'en_US', es: 'es_ES', hi: 'hi_IN', ml: 'ml_IN' };
+const ogImageUrl = ogImage ?? 'https://hospitalarias.in/images/2025/09/HOSPITALLER-FAMILY-scaled.jpg';
 const trail = crumbs ?? crumbPath(locale, pageId);
 const schema = {
   '@context': 'https://schema.org',
@@ -50,14 +56,19 @@ const breadcrumbSchema = trail.length > 1
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.lang} href={alternate.href} />)}
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content={ogType ?? 'website'} />
     <meta property="og:title" content={`${title} | Hospitalarias`} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta property="og:image" content="https://hospitalarias.in/images/2025/09/HOSPITALLER-FAMILY-scaled.jpg" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:locale" content={ogLocaleMap[locale]} />
+    {alternates.filter((a) => a.lang !== 'x-default').map((a) => <meta property="og:locale:alternate" content={ogLocaleMap[a.lang as Locale]} />)}
+    {publishedTime && <meta property="article:published_time" content={publishedTime} />}
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="alternate" type="application/rss+xml" title="News — Benedict Menni Centre" href="/feed.xml" />
     <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
     {breadcrumbSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />}
+    {extraSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(extraSchema)} />}
   </head>
   <body>
     <a class="skip-link" href="#main">{t(locale, 'skipToContent')}</a>

@@ -1,4 +1,5 @@
 import { routes, getPage, type Locale, type PageId } from '@/data/pages';
+import { mediaPath } from '@/utils/media';
 import navigation from '@/content/settings/navigation.json';
 
 const allLocales: Locale[] = ['en', 'hi', 'ml', 'es'];
@@ -14,6 +15,31 @@ export function alternateLinks(id: PageId) {
 export function otherLocale(locale: Locale): Locale {
   const others = allLocales.filter(l => l !== locale);
   return others[0] ?? 'en';
+}
+
+const ORG = {
+  '@type': 'Organization',
+  name: 'Benedict Menni Psycho-Social Rehabilitation Centre',
+  url: 'https://hospitalarias.in',
+} as const;
+
+export function newsArticleSchema(
+  entry: { data: { title: string; description: string; date: Date; image: string } },
+  locale: Locale,
+  canonical: string,
+) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: entry.data.title,
+    description: entry.data.description,
+    datePublished: entry.data.date.toISOString(),
+    inLanguage: locale,
+    image: `https://hospitalarias.in${mediaPath(entry.data.image)}`,
+    author: ORG,
+    publisher: ORG,
+    mainEntityOfPage: canonical,
+  };
 }
 
 const crumbParents: Partial<Record<PageId, PageId>> = {

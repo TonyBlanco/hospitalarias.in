@@ -9,6 +9,10 @@ DirectoryIndex index.html
   </FilesMatch>
 </IfModule>
 
+# Canonical host: www -> apex (avoid duplicate content)
+RewriteCond %{HTTP_HOST} ^www\.hospitalarias\.in$ [NC]
+RewriteRule ^(.*)$ https://hospitalarias.in/$1 [R=301,L]
+
 # /en/ has no index page — English home lives at /
 RedirectMatch 301 ^/en/?$ /
 
