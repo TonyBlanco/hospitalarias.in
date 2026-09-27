@@ -26,7 +26,6 @@ wpress/
 # Build
 dist/
 .astro/
-tina/__generated__/
 
 # Logs
 logs/

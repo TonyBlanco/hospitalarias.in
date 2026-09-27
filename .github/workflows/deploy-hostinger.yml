@@ -19,9 +19,6 @@ jobs:
     env:
       GITHUB_BRANCH: main
       HOSTINGER_DOMAIN: hospitalarias.in
-      NEXT_PUBLIC_TINA_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_TINA_CLIENT_ID }}
-      TINA_CLIENT_ID: ${{ secrets.NEXT_PUBLIC_TINA_CLIENT_ID }}
-      TINA_TOKEN: ${{ secrets.TINA_TOKEN }}
       HOSTINGER_API_TOKEN: ${{ secrets.HOSTINGER_API_TOKEN }}
       DEPLOY_ARCHIVE: hospitalarias_astro_dist.zip
 
@@ -39,13 +36,10 @@ jobs:
         run: npm ci
 
       - name: Validate required secrets
-        run: |
-          test -n "$NEXT_PUBLIC_TINA_CLIENT_ID"
-          test -n "$TINA_TOKEN"
-          test -n "$HOSTINGER_API_TOKEN"
+        run: test -n "$HOSTINGER_API_TOKEN"
 
-      - name: Build Tina admin and Astro site
-        run: npm run build:cms
+      - name: Build Astro site
+        run: npm run build
 
       - name: Write panel config
         env:
