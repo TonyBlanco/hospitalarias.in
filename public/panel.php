@@ -40,6 +40,7 @@ const CATEGORIES = ['Campaigns', 'Vatican', 'Mission', 'Community', 'Events', 'G
 const LOCALES = ['en' => 'English', 'es' => 'Español (Spanish)', 'hi' => 'हिन्दी (Hindi)', 'ml' => 'മലയാളം (Malayalam)'];
 const LOCALE_NEWS_BASE = ['en' => '/en/news/', 'es' => '/es/noticias/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/'];
 const MONTHS = ['01' => 'Jan', '02' => 'Feb', '03' => 'Mar', '04' => 'Apr', '05' => 'May', '06' => 'Jun', '07' => 'Jul', '08' => 'Aug', '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Dec'];
+const GALLERY_JSON = 'src/data/gallery.json';
 const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB photos
 const MAX_VIDEO_UPLOAD = 45 * 1024 * 1024; // 45 MB videos — bigger belongs on YouTube
 
@@ -237,6 +238,14 @@ function processImage(string $tmpPath, string $mime): ?array {
     return [(string) file_get_contents($tmpPath), $extMap[$mime]];
 }
 
+/* Read a JSON file from the repo; [] when missing/invalid. */
+function ghGetJsonFile(array $config, string $path): array {
+    $f = ghGetFile($config, $path);
+    if (!$f) return [];
+    $d = json_decode($f['content'], true);
+    return is_array($d) ? $d : [];
+}
+
 /* Human-readable upload failure from $_FILES['x']['error']; '' when OK or absent. */
 function uploadError(array $f): string {
     return match ((int) ($f['error'] ?? UPLOAD_ERR_NO_FILE)) {
@@ -315,6 +324,72 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'delete') {
             } else {
                 foreach ($mediaPaths as $mp) ghDelete($config, $mp, "news: delete media for {$path}");
                 $msg = "Deleted \"{$path}\". The site will update in about 3-5 minutes.";
+            }
+        }
+    }
+}
+
+// ---------- Gallery photos ----------
+if ($logged && isset($_POST['action']) && str_starts_with((string) $_POST['action'], 'gallery_')) {
+    if (!$csrfOk()) {
+        $err = 'Session expired — please try again.';
+    } elseif (!$config) {
+        $err = 'Panel is not configured yet.';
+    } else {
+        @set_time_limit(300);
+        $items = ghGetJsonFile($config, GALLERY_JSON);
+
+        if ($_POST['action'] === 'gallery_add') {
+            $caption = trim((string) ($_POST['caption'] ?? ''));
+            $fileErr = !empty($_FILES['photo']) ? uploadError($_FILES['photo']) : '';
+            $hasFile = !empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
+            if ($fileErr !== '') {
+                $err = 'The photo could not be uploaded: ' . $fileErr;
+            } elseif (!$hasFile) {
+                $err = 'Please choose a photo.';
+            } elseif ($_FILES['photo']['size'] > MAX_UPLOAD) {
+                $err = 'The photo is too large (max 12 MB).';
+            } elseif ($caption === '') {
+                $err = 'Please write a caption — what is happening in the photo?';
+            } else {
+                $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['photo']['tmp_name']);
+                $image = processImage($_FILES['photo']['tmp_name'], $mime);
+                if (!$image) {
+                    $err = 'The photo must be a JPG, PNG or WebP image.';
+                } else {
+                    [$bin, $ext] = $image;
+                    $base = slugify($caption);
+                    $slug = $base;
+                    $i = 2;
+                    $used = array_column($items, 'src');
+                    while (in_array("/images/gallery/{$slug}.{$ext}", $used, true)) $slug = $base . '-' . $i++;
+                    $src = "/images/gallery/{$slug}.{$ext}";
+                    [$okImg, $errImg] = ghCommit($config, 'public' . $src, (string) $bin, "gallery: {$caption}");
+                    if (!$okImg) {
+                        $err = $errImg;
+                    } else {
+                        array_unshift($items, ['src' => $src, 'alt' => $caption]);
+                        [$okJ, $errJ] = ghCommit($config, GALLERY_JSON, json_encode($items, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'gallery: index update');
+                        if ($okJ) $msg = 'Photo added — it will appear on the gallery page in about 3-5 minutes.';
+                        else $err = $errJ;
+                    }
+                }
+            }
+        } elseif ($_POST['action'] === 'gallery_delete') {
+            $src = (string) ($_POST['src'] ?? '');
+            $keep = array_values(array_filter($items, fn($it) => ($it['src'] ?? '') !== $src));
+            if (!preg_match('#^/images/gallery/[a-z0-9-]+\.(jpg|png|webp)$#', $src)) {
+                $err = 'Invalid photo.';
+            } elseif (count($keep) === count($items)) {
+                $err = 'That photo is not in the gallery index.';
+            } else {
+                [$okJ, $errJ] = ghCommit($config, GALLERY_JSON, json_encode($keep, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\n", 'gallery: remove photo');
+                if (!$okJ) {
+                    $err = $errJ;
+                } else {
+                    ghDelete($config, 'public' . $src, 'gallery: delete photo'); // best effort
+                    $msg = 'Photo removed. The gallery updates in about 3-5 minutes.';
+                }
             }
         }
     }
@@ -456,6 +531,10 @@ if ($articles) {
 }
 $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
 
+// Gallery view state + items
+$view = (($_GET['view'] ?? '') === 'gallery') ? 'gallery' : 'article';
+$galleryItems = ($logged && $config) ? ghGetJsonFile($config, GALLERY_JSON) : [];
+
 // Visit stats written by track.php (stored outside public_html)
 $statsFile = dirname(__DIR__) . '/panel-stats.json';
 $stats = is_file($statsFile) ? (json_decode((string) file_get_contents($statsFile), true) ?: []) : [];
@@ -527,6 +606,20 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
     font-weight: 700; font-size: .92rem; padding: 11px; border-radius: 8px;
   }
   .btn-new:hover { background: #612525; }
+  .btn-gallery {
+    display: block; background: #fff; color: #7a2e2e; border: 1px solid #d8d2c8;
+    text-align: center; text-decoration: none; font-weight: 700; font-size: .85rem;
+    padding: 9px; border-radius: 8px;
+  }
+  .btn-gallery:hover { border-color: #7a2e2e; }
+  .gal-list { margin-top: 20px; display: flex; flex-direction: column; gap: 6px; }
+  .gal-row {
+    display: flex; align-items: center; gap: 8px; font-size: .85rem;
+    padding: 8px 10px; border: 1px solid #eee8de; border-radius: 8px;
+  }
+  .gal-row .cap { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .gal-row .view { color: #6b655c; text-decoration: none; font-size: .78rem; }
+  .gal-row .del { border: 0; background: none; color: #b0564f; cursor: pointer; font-size: 1rem; padding: 0 2px; }
   .side-label { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #6b655c; margin: 6px 4px 6px; }
   .side-group { font-size: .72rem; font-weight: 700; color: #6b655c; text-transform: uppercase; letter-spacing: .05em; margin: 10px 4px 4px; }
   .side-item {
@@ -628,6 +721,7 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   <aside class="side">
     <p class="side-brand">News Panel<span>Benedict Menni Centre</span></p>
     <a class="btn-new" href="panel.php">+ New article</a>
+    <a class="btn-gallery" href="?view=gallery">Photos — gallery (<?= count($galleryItems) ?>)</a>
 
     <div class="side-stats" aria-label="Visit statistics">
       <p class="side-label">Visits</p>
@@ -685,6 +779,55 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   </aside>
 
   <main class="main">
+    <?php if ($view === 'gallery'): ?>
+    <div class="card">
+      <h1>Gallery photos</h1>
+      <p class="sub">Add photos of activities — they appear on the public gallery page.</p>
+
+      <?php if ($msg): ?><div class="ok"><?= e($msg) ?></div><?php endif; ?>
+      <?php if ($err): ?><div class="err"><?= e($err) ?></div><?php endif; ?>
+
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="action" value="gallery_add">
+        <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+
+        <label for="gphoto">Photo</label>
+        <input type="file" id="gphoto" name="photo" accept="image/jpeg,image/png,image/webp" required>
+        <p class="hint">JPG, PNG or WebP, up to 12 MB. Large photos are resized automatically.</p>
+
+        <label for="caption">Caption</label>
+        <input type="text" id="caption" name="caption" required maxlength="120" placeholder="e.g. Residents gardening in the morning">
+        <p class="hint">One short sentence — shown under the photo.</p>
+
+        <button type="submit">Add to gallery</button>
+      </form>
+
+      <?php if ($galleryItems): ?>
+      <div class="gal-list">
+        <?php foreach ($galleryItems as $g): ?>
+          <div class="gal-row">
+            <span class="cap" title="<?= e($g['src'] ?? '') ?>"><?= e($g['alt'] ?? '') ?></span>
+            <a class="view" href="https://hospitalarias.in<?= e($g['src'] ?? '') ?>" target="_blank" rel="noopener" title="Open photo">↗</a>
+            <form class="inline" method="post" onsubmit="return confirm('Remove &quot;<?= e($g['alt'] ?? '') ?>&quot; from the gallery? The photo file is deleted too.');">
+              <input type="hidden" name="action" value="gallery_delete">
+              <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+              <input type="hidden" name="src" value="<?= e($g['src'] ?? '') ?>">
+              <button type="submit" class="del" title="Remove">×</button>
+            </form>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <?php else: ?>
+        <p class="hint" style="margin-top:16px">No photos added yet — the public gallery still shows the original photos.</p>
+      <?php endif; ?>
+
+      <div class="links">
+        <a href="panel.php">+ New article</a>
+        <a href="https://hospitalarias.in/en/gallery/" target="_blank" rel="noopener">View gallery ↗</a>
+        <a href="?logout=1">Sign out</a>
+      </div>
+    </div>
+    <?php else: ?>
     <div class="card">
       <h1><?= $editing ? 'Edit article' : 'New article' ?></h1>
       <p class="sub"><?= $editing
@@ -775,6 +918,7 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
         <a href="?logout=1">Sign out</a>
       </div>
     </div>
+    <?php endif; ?>
   </main>
 </div>
 <?php endif; ?>

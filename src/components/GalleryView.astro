@@ -1,9 +1,15 @@
 ---
 import { type Locale, type PageData } from '@/data/pages';
+import galleryExtra from '@/data/gallery.json';
 import { t } from '@/data/i18n';
 
 type Props = { page: PageData; locale: Locale };
 const { page, locale } = Astro.props;
+// Panel-uploaded photos (gallery.json) come first — they're the newest.
+const images = [
+  ...(galleryExtra as { src: string; alt: string }[]),
+  ...page.images,
+];
 ---
 
 <section class="section alt">
@@ -18,7 +24,7 @@ const { page, locale } = Astro.props;
   <div class="container">
     <p class="lead">{t(locale, 'galleryIntro')}</p>
     <div class="gallery-grid">
-      {page.images.map((image, i) => (
+      {images.map((image, i) => (
         <button class="gallery-item" data-index={i} aria-label={`${t(locale, 'viewImage')}: ${image.alt}`}>
           <img src={image.src} alt={image.alt} loading="lazy" />
           <span class="gallery-caption">{image.alt}</span>
