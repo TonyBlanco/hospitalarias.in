@@ -12,6 +12,9 @@ DirectoryIndex index.html
 # /en/ has no index page — English home lives at /
 RedirectMatch 301 ^/en/?$ /
 
+# Panel config contains secrets — never serve it
+RedirectMatch 404 ^/panel-config\.php$
+
 # Old WordPress media URLs -> migrated images (same filename, date folders preserved)
 RewriteRule ^wp-content/uploads/(.*)$ /images/$1 [R=301,L]
 

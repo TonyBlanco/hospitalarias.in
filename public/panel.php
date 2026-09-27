@@ -11,14 +11,21 @@ session_start();
  * See docs/PANEL.md for the template.
  */
 
+// Config search: ancestors of public_html first, webroot last — a file outside
+// the web root (e.g. /home/<user>/panel-config.php) always wins over the
+// CI-generated one that ships inside public_html.
 $dir = __DIR__;
-$config = null;
+$dirs = [];
 for ($i = 0; $i < 6 && $dir !== dirname($dir); $i++) {
-    if (is_file($dir . '/panel-config.php')) {
-        $config = require $dir . '/panel-config.php';
+    $dirs[] = $dir;
+    $dir = dirname($dir);
+}
+$config = null;
+foreach (array_reverse($dirs) as $d) {
+    if (is_file($d . '/panel-config.php')) {
+        $config = require $d . '/panel-config.php';
         break;
     }
-    $dir = dirname($dir);
 }
 
 const CATEGORIES = ['Campaigns', 'Vatican', 'Mission', 'Community', 'Events', 'General'];

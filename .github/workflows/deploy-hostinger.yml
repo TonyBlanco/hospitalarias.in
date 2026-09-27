@@ -47,6 +47,32 @@ jobs:
       - name: Build Tina admin and Astro site
         run: npm run build:cms
 
+      - name: Write panel config
+        env:
+          PANEL_PASSWORD: ${{ secrets.PANEL_PASSWORD }}
+          PANEL_GITHUB_TOKEN: ${{ secrets.PANEL_GITHUB_TOKEN }}
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          if (!process.env.PANEL_PASSWORD || !process.env.PANEL_GITHUB_TOKEN) {
+            console.log('PANEL_PASSWORD/PANEL_GITHUB_TOKEN not set — skipping panel-config.php');
+            process.exit(0);
+          }
+          const esc = (s) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+          const lines = [
+            '<?php',
+            'return [',
+            "  'github_token'   => '" + esc(process.env.PANEL_GITHUB_TOKEN) + "',",
+            "  'github_repo'    => 'TonyBlanco/hospitalarias.in',",
+            "  'github_branch'  => 'main',",
+            "  'panel_password' => '" + esc(process.env.PANEL_PASSWORD) + "',",
+            '];',
+            '',
+          ];
+          fs.writeFileSync('dist/panel-config.php', lines.join('\n'));
+          console.log('panel-config.php written to dist');
+          EOF
+
       - name: Package static output
         run: |
           cd dist
