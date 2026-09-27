@@ -14,6 +14,16 @@ const dateStr = entry.data.date.toLocaleDateString(localeMap[locale] ?? 'en-GB',
   month: 'long',
   day: 'numeric',
 });
+
+const video = entry.data.video ?? '';
+const yt = video.match(/(?:youtube\.com\/(?:watch\?[^#]*v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{6,})/);
+const vm = video.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+const videoEmbed = yt
+  ? `https://www.youtube-nocookie.com/embed/${yt[1]}`
+  : vm
+    ? `https://player.vimeo.com/video/${vm[1]}`
+    : null;
+const videoFile = video.startsWith('/') ? mediaPath(video) : null;
 ---
 
 <section class="section alt">
@@ -27,6 +37,12 @@ const dateStr = entry.data.date.toLocaleDateString(localeMap[locale] ?? 'en-GB',
 <section class="section">
   <div class="container prose">
     <img src={mediaPath(entry.data.image)} alt={entry.data.imageAlt} />
+    {videoFile && <video class="article-video" src={videoFile} controls playsinline preload="metadata" />}
+    {videoEmbed && (
+      <div class="video-embed">
+        <iframe src={videoEmbed} title={entry.data.title} loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen />
+      </div>
+    )}
     <Content />
     <p><a href={routes[locale].news}>{t(locale, 'backToNews')}</a></p>
   </div>

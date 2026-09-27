@@ -23,6 +23,7 @@ const news = defineCollection({
     image: z.string(),
     imageAlt: z.string(),
     description: z.string(),
+    video: z.string().optional(),
   }),
 });
 

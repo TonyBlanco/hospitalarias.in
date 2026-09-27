@@ -30,7 +30,8 @@ foreach (array_reverse($dirs) as $d) {
 const CATEGORIES = ['Campaigns', 'Vatican', 'Mission', 'Community', 'Events', 'General'];
 const LOCALES = ['en' => 'English', 'es' => 'Español (Spanish)', 'hi' => 'हिन्दी (Hindi)', 'ml' => 'മലയാളം (Malayalam)'];
 const LOCALE_NEWS_BASE = ['en' => '/en/news/', 'es' => '/es/noticias/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/'];
-const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB
+const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB photos
+const MAX_VIDEO_UPLOAD = 45 * 1024 * 1024; // 45 MB videos — bigger belongs on YouTube
 
 $msg = '';
 $err = '';
@@ -47,13 +48,13 @@ function yamlQuote(string $s): string {
     return "'" . str_replace("'", "''", trim($s)) . "'";
 }
 
-function httpRequest(string $method, string $url, array $headers, ?string $body = null): array {
+function httpRequest(string $method, string $url, array $headers, ?string $body = null, int $timeout = 30): array {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_TIMEOUT => 30,
+        CURLOPT_TIMEOUT => $timeout,
     ]);
     if ($body !== null) curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
     $resp = curl_exec($ch);
@@ -105,7 +106,8 @@ function ghCommit(array $config, string $path, string $binary, string $message):
     ];
     if ($sha) $payload['sha'] = $sha;
 
-    [$code, $body] = httpRequest('PUT', $api, $headers, json_encode($payload));
+    // Videos push a big base64 payload — give the PUT more time.
+    [$code, $body] = httpRequest('PUT', $api, $headers, json_encode($payload), strlen($binary) > 4 * 1024 * 1024 ? 120 : 30);
     if ($code === 200 || $code === 201) return [true, ''];
     $detail = json_decode($body, true)['message'] ?? $body;
     return [false, "GitHub error {$code} on {$path}: {$detail}"];
@@ -142,7 +144,7 @@ function ghListNews(array $config): array {
 
 /* Split a news markdown file into frontmatter fields + body. */
 function parseNewsFile(string $md): array {
-    $fields = ['title' => '', 'date' => '', 'category' => 'General', 'image' => '', 'imageAlt' => '', 'description' => ''];
+    $fields = ['title' => '', 'date' => '', 'category' => 'General', 'image' => '', 'imageAlt' => '', 'description' => '', 'video' => ''];
     $body = $md;
     if (preg_match('/^---\R(.*?)\R---\R?(.*)$/s', $md, $m)) {
         $body = trim($m[2]);
@@ -159,6 +161,14 @@ function parseNewsFile(string $md): array {
     }
     $fields['date'] = substr($fields['date'], 0, 10);
     return [$fields, $body];
+}
+
+/* Returns [binary, extension] or null on unsupported type. Videos are stored
+   as-is — no transcoding on shared hosting. */
+function processVideo(string $tmpPath, string $mime): ?array {
+    $extMap = ['video/mp4' => 'mp4', 'video/webm' => 'webm', 'video/quicktime' => 'mov'];
+    if (!isset($extMap[$mime])) return null;
+    return [(string) file_get_contents($tmpPath), $extMap[$mime]];
 }
 
 /* Returns [binary, extension] or null on unsupported type. */
@@ -234,18 +244,21 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'delete') {
         } else {
             // If the article uses a panel-managed photo, remove it too (best effort).
             $file = ghGetFile($config, $path);
-            $imgPath = null;
+            $mediaPaths = [];
             if ($file) {
                 [$fields] = parseNewsFile($file['content']);
                 if (preg_match('#^/images/news/[a-z0-9-]+\.(jpg|png|webp)$#', $fields['image'])) {
-                    $imgPath = 'public' . $fields['image'];
+                    $mediaPaths[] = 'public' . $fields['image'];
+                }
+                if (preg_match('#^/videos/[a-z0-9-]+\.(mp4|webm|mov)$#', $fields['video'])) {
+                    $mediaPaths[] = 'public' . $fields['video'];
                 }
             }
             [$ok, $delErr] = ghDelete($config, $path, "news: delete {$path}");
             if (!$ok) {
                 $err = $delErr;
             } else {
-                if ($imgPath) ghDelete($config, $imgPath, "news: delete photo for {$path}");
+                foreach ($mediaPaths as $mp) ghDelete($config, $mp, "news: delete media for {$path}");
                 $msg = "Deleted \"{$path}\". The site will update in about 3-5 minutes.";
             }
         }
@@ -266,6 +279,8 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
         $isEdit = $editSlug !== '' && preg_match('/^[a-z0-9-]+$/', $editSlug) && isset(LOCALES[$editLocale]);
         $origImage = (string) ($_POST['orig_image'] ?? '');
         if (!preg_match('#^/images/[a-zA-Z0-9_/.-]+$#', $origImage)) $origImage = '';
+        $origVideo = (string) ($_POST['orig_video'] ?? '');
+        if (!preg_match('#^(/videos/|https?://)#i', $origVideo)) $origVideo = '';
 
         $locale = $isEdit ? $editLocale : (string) ($_POST['locale'] ?? 'en');
         $title = trim((string) ($_POST['title'] ?? ''));
@@ -278,6 +293,8 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
 
         $hasPhoto = !empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
         $photoMissing = !$hasPhoto && (!$isEdit || $origImage === '');
+        $hasVideo = !empty($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK;
+        $videoUrl = trim((string) ($_POST['video_url'] ?? ''));
 
         if (!isset(LOCALES[$locale])) $err = 'Please choose a valid language.';
         elseif ($title === '' || $body === '' || $description === '' || $imageAlt === '') {
@@ -286,13 +303,34 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
             $err = 'The photo is too large (max 12 MB).';
         } elseif ($photoMissing) {
             $err = 'Please attach a photo (JPG, PNG or WebP, up to 12 MB).';
+        } elseif ($hasVideo && $_FILES['video']['size'] > MAX_VIDEO_UPLOAD) {
+            $err = 'The video is too large (max 45 MB) — for longer videos, upload to YouTube and paste the link instead.';
+        } elseif ($videoUrl !== '' && !preg_match('#^https?://(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com|vimeo\.com|player\.vimeo\.com)/#i', $videoUrl)) {
+            $err = 'The video link must be a YouTube or Vimeo URL.';
         } else {
             $slug = $isEdit ? $editSlug : slugify($title);
             $imgWebPath = $origImage;
             $imgRepoPath = null;
             $imgBin = null;
+            $video = $origVideo;
+            $vidRepoPath = null;
+            $vidBin = null;
 
-            if ($hasPhoto) {
+            if ($hasVideo) {
+                $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['video']['tmp_name']);
+                $vid = processVideo($_FILES['video']['tmp_name'], $mime);
+                if (!$vid) {
+                    $err = 'The video must be MP4, WebM or MOV.';
+                } else {
+                    [$vidBin, $vExt] = $vid;
+                    $vidRepoPath = "public/videos/{$slug}.{$vExt}";
+                    $video = "/videos/{$slug}.{$vExt}";
+                }
+            } elseif ($videoUrl !== '') {
+                $video = $videoUrl;
+            }
+
+            if ($err === '' && $hasPhoto) {
                 $mime = (string) (new finfo(FILEINFO_MIME_TYPE))->file($_FILES['photo']['tmp_name']);
                 $image = processImage($_FILES['photo']['tmp_name'], $mime);
                 if (!$image) {
@@ -312,11 +350,16 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
                     . "image: {$imgWebPath}\n"
                     . 'imageAlt: ' . yamlQuote($imageAlt) . "\n"
                     . 'description: ' . yamlQuote($description) . "\n"
+                    . ($video !== '' ? "video: {$video}\n" : '')
                     . "---\n\n" . $body . "\n";
 
                 if ($imgRepoPath) {
                     [$okImg, $errImg] = ghCommit($config, $imgRepoPath, (string) $imgBin, "news: photo for {$slug}");
                     if (!$okImg) $err = $errImg;
+                }
+                if ($err === '' && $vidRepoPath) {
+                    [$okVid, $errVid] = ghCommit($config, $vidRepoPath, (string) $vidBin, "news: video for {$slug}");
+                    if (!$okVid) $err = $errVid;
                 }
                 if ($err === '') {
                     [$okMd, $errMd] = ghCommit($config, "src/content/news/{$locale}/{$slug}.md", $md, ($isEdit ? 'news: update ' : 'news: ') . $title);
@@ -490,6 +533,7 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
           <input type="hidden" name="edit_slug" value="<?= e($editing['slug']) ?>">
           <input type="hidden" name="edit_locale" value="<?= e($editing['locale']) ?>">
           <input type="hidden" name="orig_image" value="<?= e($editing['fields']['image']) ?>">
+          <input type="hidden" name="orig_video" value="<?= e($editing['fields']['video']) ?>">
         <?php endif; ?>
 
         <div class="row">
@@ -534,6 +578,17 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
         <p class="hint"><?= $editing ? 'Leave empty to keep the current photo.' : 'JPG, PNG or WebP, up to 12 MB. Large photos are resized automatically.' ?></p>
         <?php if ($editing && $editing['fields']['image'] !== ''): ?>
           <p class="hint">Current: <a href="https://hospitalarias.in<?= e($editing['fields']['image']) ?>" target="_blank" rel="noopener"><?= e($editing['fields']['image']) ?></a></p>
+        <?php endif; ?>
+
+        <label for="video_url">Video — YouTube or Vimeo link (optional)</label>
+        <input type="url" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=…" value="<?= e($editing && str_starts_with($editing['fields']['video'], 'http') ? $editing['fields']['video'] : '') ?>">
+        <p class="hint">Best option for long videos — upload to YouTube as "unlisted" and paste the link here.</p>
+
+        <label for="video">Or upload a video file</label>
+        <input type="file" id="video" name="video" accept="video/mp4,video/webm,video/quicktime">
+        <p class="hint">MP4 or WebM, max 45 MB. <?= $editing ? 'Leave empty to keep the current video.' : 'For longer videos use YouTube — faster and takes no space.' ?></p>
+        <?php if ($editing && $editing['fields']['video'] !== ''): ?>
+          <p class="hint">Current: <?= e($editing['fields']['video']) ?></p>
         <?php endif; ?>
 
         <label for="image_alt">Photo description</label>
