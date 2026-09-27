@@ -39,6 +39,7 @@ foreach (array_reverse($dirs) as $d) {
 const CATEGORIES = ['Campaigns', 'Vatican', 'Mission', 'Community', 'Events', 'General'];
 const LOCALES = ['en' => 'English', 'es' => 'Español (Spanish)', 'hi' => 'हिन्दी (Hindi)', 'ml' => 'മലയാളം (Malayalam)'];
 const LOCALE_NEWS_BASE = ['en' => '/en/news/', 'es' => '/es/noticias/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/'];
+const MONTHS = ['01' => 'Jan', '02' => 'Feb', '03' => 'Mar', '04' => 'Apr', '05' => 'May', '06' => 'Jun', '07' => 'Jul', '08' => 'Aug', '09' => 'Sep', '10' => 'Oct', '11' => 'Nov', '12' => 'Dec'];
 const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB photos
 const MAX_VIDEO_UPLOAD = 45 * 1024 * 1024; // 45 MB videos — bigger belongs on YouTube
 
@@ -148,6 +149,40 @@ function ghListNews(array $config): array {
             }
         }
     }
+    return $out;
+}
+
+/* Fetch many repo files in parallel via curl_multi. Returns [path => content]. */
+function ghGetFiles(array $config, array $paths): array {
+    $mh = curl_multi_init();
+    $handles = [];
+    foreach (array_slice($paths, 0, 80) as $path) {
+        $ch = curl_init(ghApiUrl($config, $path) . '?ref=' . rawurlencode($config['github_branch']));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ghHeaders($config),
+            CURLOPT_TIMEOUT => 30,
+        ]);
+        curl_multi_add_handle($mh, $ch);
+        $handles[$path] = $ch;
+    }
+    $running = 0;
+    do {
+        $st = curl_multi_exec($mh, $running);
+        if ($running) curl_multi_select($mh);
+    } while ($running > 0 && $st === CURLM_OK);
+    $out = [];
+    foreach ($handles as $path => $ch) {
+        if ((int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE) === 200) {
+            $data = json_decode((string) curl_multi_getcontent($ch), true);
+            if (isset($data['content'])) {
+                $out[$path] = (string) base64_decode(str_replace("\n", '', (string) $data['content']));
+            }
+        }
+        curl_multi_remove_handle($mh, $ch);
+        curl_close($ch);
+    }
+    curl_multi_close($mh);
     return $out;
 }
 
@@ -405,7 +440,20 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
 // ---------- Manage list ----------
 $articles = ($logged && $config) ? ghListNews($config) : [];
 $articlesByLocale = [];
-foreach ($articles as $a) $articlesByLocale[$a['locale']][] = $a;
+if ($articles) {
+    $contents = ghGetFiles($config, array_column($articles, 'path'));
+    foreach ($articles as &$a) {
+        [$f] = parseNewsFile($contents[$a['path']] ?? '');
+        $a['title'] = $f['title'] !== '' ? $f['title'] : $a['slug'];
+        $a['date'] = $f['date'] !== '' ? $f['date'] : '0000-00-00';
+        $a['category'] = $f['category'] !== '' ? $f['category'] : 'General';
+    }
+    unset($a);
+    usort($articles, fn($x, $y) => strcmp($y['date'], $x['date']) ?: strcmp($x['slug'], $y['slug']));
+    foreach ($articles as $a) {
+        $articlesByLocale[$a['locale']][substr($a['date'], 0, 4)][substr($a['date'], 5, 2)][] = $a;
+    }
+}
 $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
 
 // Form values: defaults <- article being edited <- what the user just typed
@@ -483,6 +531,22 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   .side-foot a { text-decoration: none; }
   .side-empty { color: #6b655c; font-size: .85rem; margin: 4px; }
 
+  /* Date-grouped article tree */
+  .side-filter { width: 100%; padding: 8px 10px; font-size: .85rem; border: 1px solid #d8d2c8; border-radius: 8px; }
+  details.year { margin: 0 0 2px; }
+  details.year summary {
+    cursor: pointer; font-size: .8rem; font-weight: 700; color: #6b655c;
+    padding: 5px 6px; border-radius: 6px; list-style: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  details.year summary::-webkit-details-marker { display: none; }
+  details.year summary::before { content: '▸'; font-size: .68rem; }
+  details.year[open] summary::before { content: '▾'; }
+  details.year summary:hover { background: #f4f2ef; }
+  details.year summary .cnt { margin-left: auto; font-weight: 600; font-size: .72rem; color: #9a938a; }
+  .month-head { font-size: .7rem; font-weight: 700; color: #9a938a; margin: 5px 14px 0; }
+  .side-item .cat { display: block; font-size: .66rem; color: #9a938a; font-weight: 400; }
+
   .main { flex: 1; padding: 26px 20px 40px; display: flex; justify-content: center; align-items: flex-start; }
   .main .card { width: 100%; max-width: 620px; }
 
@@ -542,22 +606,37 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
 
     <nav aria-label="Existing articles">
       <p class="side-label">Articles</p>
+      <input id="af" class="side-filter" type="search" placeholder="Filter by title or category…" aria-label="Filter articles">
       <?php if ($articlesByLocale): ?>
-        <?php foreach ($articlesByLocale as $loc => $items): ?>
-          <p class="side-group"><?= e(strtoupper($loc)) ?> — <?= e(LOCALES[$loc] ?? $loc) ?></p>
-          <?php foreach ($items as $a):
-            $key = $a['locale'] . '/' . $a['slug']; ?>
-            <div class="side-item<?= $key === $editKey ? ' active' : '' ?>">
-              <a class="slug" href="?edit=<?= e($key) ?>"><?= e($a['slug']) ?></a>
-              <a class="view" href="https://hospitalarias.in<?= e(LOCALE_NEWS_BASE[$a['locale']]) . e($a['slug']) ?>/" target="_blank" rel="noopener" title="View on site">↗</a>
-              <form class="inline" method="post" onsubmit="return confirm('Delete &quot;<?= e($a['slug']) ?>&quot; (<?= e($a['locale']) ?>)? This cannot be undone.');">
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
-                <input type="hidden" name="path" value="<?= e($a['path']) ?>">
-                <button type="submit" class="del" title="Delete">×</button>
-              </form>
-            </div>
-          <?php endforeach; ?>
+        <?php foreach ($articlesByLocale as $loc => $years): ?>
+          <div class="locale-group">
+            <p class="side-group"><?= e(strtoupper($loc)) ?> — <?= e(LOCALES[$loc] ?? $loc) ?></p>
+            <?php $firstYear = true; foreach ($years as $year => $months): ?>
+              <details class="year" <?= $firstYear ? 'open' : '' ?>>
+                <summary><?= (string) $year === '0000' ? 'Undated' : e((string) $year) ?><span class="cnt"><?= array_sum(array_map('count', $months)) ?></span></summary>
+                <?php foreach ($months as $mon => $items): ?>
+                  <div class="month-group">
+                    <p class="month-head"><?= e(MONTHS[$mon] ?? 'Undated') ?></p>
+                    <?php foreach ($items as $a):
+                      $key = $a['locale'] . '/' . $a['slug']; ?>
+                      <div class="side-item<?= $key === $editKey ? ' active' : '' ?>">
+                        <a class="slug" href="?edit=<?= e($key) ?>" title="<?= e($a['slug']) ?>">
+                          <?= e($a['title']) ?><span class="cat"><?= e($a['category']) ?></span>
+                        </a>
+                        <a class="view" href="https://hospitalarias.in<?= e(LOCALE_NEWS_BASE[$a['locale']]) . e($a['slug']) ?>/" target="_blank" rel="noopener" title="View on site">↗</a>
+                        <form class="inline" method="post" onsubmit="return confirm('Delete &quot;<?= e($a['slug']) ?>&quot; (<?= e($a['locale']) ?>)? This cannot be undone.');">
+                          <input type="hidden" name="action" value="delete">
+                          <input type="hidden" name="csrf" value="<?= e((string) ($_SESSION['csrf'] ?? '')) ?>">
+                          <input type="hidden" name="path" value="<?= e($a['path']) ?>">
+                          <button type="submit" class="del" title="Delete">×</button>
+                        </form>
+                      </div>
+                    <?php endforeach; ?>
+                  </div>
+                <?php endforeach; ?>
+              </details>
+            <?php $firstYear = false; endforeach; ?>
+          </div>
         <?php endforeach; ?>
       <?php else: ?>
         <p class="side-empty">No articles yet — publish the first one.</p>
@@ -664,6 +743,24 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   </main>
 </div>
 <?php endif; ?>
+
+<script>
+  const af = document.getElementById('af');
+  if (af) af.addEventListener('input', () => {
+    const q = af.value.trim().toLowerCase();
+    document.querySelectorAll('.side-item').forEach(el => {
+      el.style.display = !q || el.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+    document.querySelectorAll('details.year').forEach(d => {
+      if (q && !d.open) { d.open = true; d.dataset.auto = '1'; }
+      else if (!q && d.dataset.auto) { d.open = false; delete d.dataset.auto; }
+    });
+    document.querySelectorAll('.month-group, .locale-group').forEach(g => {
+      const anyVisible = [...g.querySelectorAll('.side-item')].some(i => i.style.display !== 'none');
+      g.style.display = q && !anyVisible ? 'none' : '';
+    });
+  });
+</script>
 
 </body>
 </html>
