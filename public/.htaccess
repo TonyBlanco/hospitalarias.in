@@ -9,6 +9,12 @@ DirectoryIndex index.html
   </FilesMatch>
 </IfModule>
 
+# /en/ has no index page — English home lives at /
+RedirectMatch 301 ^/en/?$ /
+
+# Old WordPress media URLs -> migrated images (same filename, date folders preserved)
+RewriteRule ^wp-content/uploads/(.*)$ /images/$1 [R=301,L]
+
 Redirect 301 /our-founders/ /en/about/founders/
 Redirect 301 /our-founders-2/ /en/about/founders/
 Redirect 301 /benito-menni/ /en/about/founders/benito-menni/
@@ -24,3 +30,17 @@ Redirect 301 /gallery/ /en/gallery/
 Redirect 301 /newsletter/ /en/newsletter/
 Redirect 301 /contact/ /en/contact/
 Redirect 301 /policy/ /en/privacy-policy/
+Redirect 301 /about-us/ /en/about/
+Redirect 301 /inicio/ /
+Redirect 301 /donate/ /en/get-involved/donate/
+Redirect 301 /volunteer-services/ /en/get-involved/volunteer/
+Redirect 301 /collaborate-with-us/ /en/get-involved/collaborate/
+Redirect 301 /news-events/ /en/news/
+Redirect 301 /rehabilitation-services/ /en/what-we-do/
+Redirect 301 /vocational-training/ /en/what-we-do/
+Redirect 301 /family-community-support/ /en/what-we-do/
+Redirect 301 /pastoral-care/ /en/what-we-do/
+Redirect 301 /holistic-health/ /en/what-we-do/
+Redirect 301 /humanity-in-care/ /en/what-we-do/
+Redirect 301 /service-to-the-sick-and-needy/ /en/what-we-do/
+Redirect 301 /sensitivity-for-the-excluded/ /en/what-we-do/

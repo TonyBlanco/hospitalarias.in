@@ -3,6 +3,9 @@ export function GET() {
     [
       'User-agent: *',
       'Allow: /',
+      'Disallow: /admin/',
+      'Disallow: /panel.php',
+      '',
       'Sitemap: https://hospitalarias.in/sitemap-index.xml',
       '',
     ].join('\n'),

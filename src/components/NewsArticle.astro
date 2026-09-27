@@ -1,0 +1,33 @@
+---
+import { type Locale, routes } from '@/data/pages';
+import { t } from '@/data/i18n';
+import { mediaPath } from '@/utils/media';
+import { render, type CollectionEntry } from 'astro:content';
+
+type Props = { entry: CollectionEntry<'news'>; locale: Locale };
+const { entry, locale } = Astro.props;
+const { Content } = await render(entry);
+
+const localeMap: Record<Locale, string> = { en: 'en-GB', hi: 'hi-IN', ml: 'ml-IN' };
+const dateStr = entry.data.date.toLocaleDateString(localeMap[locale] ?? 'en-GB', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<section class="section alt">
+  <div class="container">
+    <p class="eyebrow">{entry.data.category}</p>
+    <h1>{entry.data.title}</h1>
+    <p class="lead"><time datetime={entry.data.date.toISOString()}>{dateStr}</time></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container prose">
+    <img src={mediaPath(entry.data.image)} alt={entry.data.imageAlt} />
+    <Content />
+    <p><a href={routes[locale].news}>{t(locale, 'backToNews')}</a></p>
+  </div>
+</section>

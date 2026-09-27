@@ -1,0 +1,21 @@
+---
+import Base from '@/layouts/Base.astro';
+import NewsArticle from '@/components/NewsArticle.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const news = await getCollection('news');
+  return news
+    .filter((item) => item.id.startsWith('hi/'))
+    .map((entry) => ({
+      params: { slug: entry.id.slice(3) },
+      props: { entry },
+    }));
+}
+
+const { entry } = Astro.props;
+---
+
+<Base title={entry.data.title} description={entry.data.description} locale="hi" pageId="news">
+  <NewsArticle entry={entry} locale="hi" />
+</Base>

@@ -74,6 +74,8 @@ const strings = {
     newsTitle: 'News',
     newsDesc: 'Discover the stories, events, and daily life that bring our mission to life.',
     newsEmpty: 'No news articles yet. Check back soon for updates.',
+    readMore: 'Read more',
+    backToNews: '← All news',
 
     // Accessibility
     skipToContent: 'Skip to content',
@@ -155,6 +157,8 @@ const strings = {
     newsTitle: 'समाचार',
     newsDesc: 'हमारे मिशन को जीवन देने वाली कहानियों, कार्यक्रमों और दैनिक जीवन की खोज करें।',
     newsEmpty: 'अभी कोई समाचार नहीं। जल्द ही अपडेट के लिए देखें।',
+    readMore: 'और पढ़ें',
+    backToNews: '← सभी समाचार',
 
     // Accessibility
     skipToContent: 'सामग्री पर जाएँ',
@@ -236,6 +240,8 @@ const strings = {
     newsTitle: 'വാർത്തകൾ',
     newsDesc: 'ഞങ്ങളുടെ ദൗത്യത്തിന് ജീവൻ നൽകുന്ന കഥകൾ, പരിപാടികൾ & ദൈനംദിന ജീവിതം കണ്ടെത്തുക.',
     newsEmpty: 'ഇപ്പോൾ വാർത്തകളൊന്നുമില്ല. അപ്‌ഡേറ്റുകൾക്കായി ഉടൻ തന്നെ വീണ്ടും സന്ദർശിക്കുക.',
+    readMore: 'കൂടുതൽ വായിക്കുക',
+    backToNews: '← എല്ലാ വാർത്തകളും',
 
     // Accessibility
     skipToContent: 'ഉള്ളടക്കത്തിലേക്ക് പോകുക',
