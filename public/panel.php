@@ -1,5 +1,14 @@
 <?php
 declare(strict_types=1);
+// Long-lived session: writing an article can take a while.
+session_set_cookie_params([
+    'lifetime' => 8 * 3600,
+    'path' => '/',
+    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
+ini_set('session.gc_maxlifetime', (string) (8 * 3600));
 session_start();
 
 /*
@@ -193,6 +202,17 @@ function processImage(string $tmpPath, string $mime): ?array {
     return [(string) file_get_contents($tmpPath), $extMap[$mime]];
 }
 
+/* Human-readable upload failure from $_FILES['x']['error']; '' when OK or absent. */
+function uploadError(array $f): string {
+    return match ((int) ($f['error'] ?? UPLOAD_ERR_NO_FILE)) {
+        UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE => '',
+        UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'the file is too large for the server',
+        UPLOAD_ERR_PARTIAL => 'the upload was interrupted — check the connection and try again',
+        UPLOAD_ERR_NO_TMP_DIR, UPLOAD_ERR_CANT_WRITE => 'server storage error',
+        default => 'upload failed',
+    };
+}
+
 // ---------- Auth ----------
 if (isset($_GET['logout'])) {
     session_destroy();
@@ -263,7 +283,6 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'delete') {
             }
         }
     }
-    $_SESSION['csrf'] = bin2hex(random_bytes(16));
 }
 
 // ---------- Publish / Update ----------
@@ -291,23 +310,30 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
         $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_POST['date'] ?? ''))
             ? (string) $_POST['date'] : gmdate('Y-m-d');
 
-        $hasPhoto = !empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
+        $photoErr = !empty($_FILES['photo']) ? uploadError($_FILES['photo']) : '';
+        $videoErr = !empty($_FILES['video']) ? uploadError($_FILES['video']) : '';
+        $hasPhoto = $photoErr === '' && !empty($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK;
         $photoMissing = !$hasPhoto && (!$isEdit || $origImage === '');
-        $hasVideo = !empty($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK;
+        $hasVideo = $videoErr === '' && !empty($_FILES['video']) && $_FILES['video']['error'] === UPLOAD_ERR_OK;
         $videoUrl = trim((string) ($_POST['video_url'] ?? ''));
 
         if (!isset(LOCALES[$locale])) $err = 'Please choose a valid language.';
         elseif ($title === '' || $body === '' || $description === '' || $imageAlt === '') {
             $err = 'Please fill in every field.';
+        } elseif ($photoErr !== '') {
+            $err = 'The photo could not be uploaded: ' . $photoErr;
         } elseif ($hasPhoto && $_FILES['photo']['size'] > MAX_UPLOAD) {
             $err = 'The photo is too large (max 12 MB).';
         } elseif ($photoMissing) {
             $err = 'Please attach a photo (JPG, PNG or WebP, up to 12 MB).';
+        } elseif ($videoErr !== '') {
+            $err = 'The video could not be uploaded: ' . $videoErr;
         } elseif ($hasVideo && $_FILES['video']['size'] > MAX_VIDEO_UPLOAD) {
             $err = 'The video is too large (max 45 MB) — for longer videos, upload to YouTube and paste the link instead.';
         } elseif ($videoUrl !== '' && !preg_match('#^https?://(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com|vimeo\.com|player\.vimeo\.com|instagram\.com)/#i', $videoUrl)) {
             $err = 'The video link must be a YouTube, Vimeo or Instagram URL.';
         } else {
+            @set_time_limit(300); // media commits to GitHub can be slow
             $slug = $isEdit ? $editSlug : slugify($title);
             $imgWebPath = $origImage;
             $imgRepoPath = null;
@@ -374,7 +400,6 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
             }
         }
     }
-    $_SESSION['csrf'] = bin2hex(random_bytes(16)); // rotate token
 }
 
 // ---------- Manage list ----------
@@ -382,6 +407,35 @@ $articles = ($logged && $config) ? ghListNews($config) : [];
 $articlesByLocale = [];
 foreach ($articles as $a) $articlesByLocale[$a['locale']][] = $a;
 $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
+
+// Form values: defaults <- article being edited <- what the user just typed
+// (so a failed publish never wipes their work).
+$form = [
+    'locale' => 'en', 'date' => gmdate('Y-m-d'), 'title' => '', 'category' => '',
+    'description' => '', 'imageAlt' => '', 'body' => '', 'video_url' => '',
+];
+if ($editing) {
+    $form = array_merge($form, [
+        'locale' => $editing['locale'],
+        'date' => $editing['fields']['date'],
+        'title' => $editing['fields']['title'],
+        'category' => $editing['fields']['category'],
+        'description' => $editing['fields']['description'],
+        'imageAlt' => $editing['fields']['imageAlt'],
+        'body' => $editing['body'],
+        'video_url' => str_starts_with($editing['fields']['video'], 'http') ? $editing['fields']['video'] : '',
+    ]);
+}
+if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
+    foreach ([
+        'locale' => 'locale', 'date' => 'date', 'title' => 'title',
+        'category' => 'category', 'description' => 'description',
+        'imageAlt' => 'image_alt', 'body' => 'body', 'video_url' => 'video_url',
+    ] as $k => $postKey) {
+        $v = trim((string) ($_POST[$postKey] ?? ''));
+        if ($v !== '') $form[$k] = $v;
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -544,25 +598,25 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
             <?php else: ?>
               <select id="locale" name="locale">
                 <?php foreach (LOCALES as $code => $label): ?>
-                  <option value="<?= e($code) ?>"><?= e($label) ?></option>
+                  <option value="<?= e($code) ?>" <?= $code === $form['locale'] ? 'selected' : '' ?>><?= e($label) ?></option>
                 <?php endforeach; ?>
               </select>
             <?php endif; ?>
           </div>
           <div>
             <label for="date">Date</label>
-            <input type="date" id="date" name="date" value="<?= e($editing ? $editing['fields']['date'] : gmdate('Y-m-d')) ?>">
+            <input type="date" id="date" name="date" value="<?= e($form['date']) ?>">
           </div>
         </div>
 
         <label for="title">Title</label>
-        <input type="text" id="title" name="title" required maxlength="140" value="<?= e($editing ? $editing['fields']['title'] : '') ?>">
+        <input type="text" id="title" name="title" required maxlength="140" value="<?= e($form['title']) ?>">
 
         <label for="category">Category</label>
         <select id="category" name="category">
           <?php
           $cats = CATEGORIES;
-          $cur = $editing ? $editing['fields']['category'] : '';
+          $cur = $form['category'];
           if ($cur !== '' && !in_array($cur, $cats, true)) array_unshift($cats, $cur);
           foreach ($cats as $c): ?>
             <option <?= $c === $cur ? 'selected' : '' ?>><?= e($c) ?></option>
@@ -570,7 +624,7 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
         </select>
 
         <label for="description">Short description</label>
-        <input type="text" id="description" name="description" required maxlength="200" value="<?= e($editing ? $editing['fields']['description'] : '') ?>">
+        <input type="text" id="description" name="description" required maxlength="200" value="<?= e($form['description']) ?>">
         <p class="hint">One or two sentences — shown on the news card.</p>
 
         <label for="photo">Photo</label>
@@ -581,7 +635,7 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
         <?php endif; ?>
 
         <label for="video_url">Video — YouTube, Vimeo or Instagram link (optional)</label>
-        <input type="url" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=… or https://instagram.com/reel/…" value="<?= e($editing && str_starts_with($editing['fields']['video'], 'http') ? $editing['fields']['video'] : '') ?>">
+        <input type="url" id="video_url" name="video_url" placeholder="https://youtube.com/watch?v=… or https://instagram.com/reel/…" value="<?= e($form['video_url']) ?>">
         <p class="hint">Paste a YouTube/Vimeo link, or an Instagram post/reel link to show it inside the article.</p>
 
         <label for="video">Or upload a video file</label>
@@ -592,11 +646,11 @@ $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
         <?php endif; ?>
 
         <label for="image_alt">Photo description</label>
-        <input type="text" id="image_alt" name="image_alt" required maxlength="160" value="<?= e($editing ? $editing['fields']['imageAlt'] : '') ?>">
+        <input type="text" id="image_alt" name="image_alt" required maxlength="160" value="<?= e($form['imageAlt']) ?>">
         <p class="hint">Describe the photo for blind readers, e.g. "Residents at the garden workshop".</p>
 
         <label for="body">Article text</label>
-        <textarea id="body" name="body" required><?= e($editing ? $editing['body'] : '') ?></textarea>
+        <textarea id="body" name="body" required><?= e($form['body']) ?></textarea>
         <p class="hint">Plain text. Leave an empty line between paragraphs.</p>
 
         <button type="submit"><?= $editing ? 'Update article' : 'Publish' ?></button>
