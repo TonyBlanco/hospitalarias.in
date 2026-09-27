@@ -87,6 +87,9 @@ const breadcrumbSchema = trail.length > 1
   </head>
   <body>
     <a class="skip-link" href="#main">{t(locale, 'skipToContent')}</a>
+    <script is:inline>
+      try { navigator.sendBeacon('/track.php?p=' + encodeURIComponent(location.pathname)); } catch (e) {}
+    </script>
     <Header locale={locale} pageId={pageId} />
     <main id="main">
       {trail.length > 1 && (

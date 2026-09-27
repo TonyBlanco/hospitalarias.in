@@ -5,6 +5,7 @@ export function GET() {
       'Allow: /',
       'Disallow: /admin/',
       'Disallow: /panel.php',
+      'Disallow: /track.php',
       '',
       'Sitemap: https://hospitalarias.in/sitemap-index.xml',
       '',

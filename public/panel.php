@@ -456,6 +456,22 @@ if ($articles) {
 }
 $editKey = $editing ? $editing['locale'] . '/' . $editing['slug'] : '';
 
+// Visit stats written by track.php (stored outside public_html)
+$statsFile = dirname(__DIR__) . '/panel-stats.json';
+$stats = is_file($statsFile) ? (json_decode((string) file_get_contents($statsFile), true) ?: []) : [];
+$cutoff30 = gmdate('Y-m-d', strtotime('-30 days'));
+$todayCount = array_sum($stats[gmdate('Y-m-d')] ?? []);
+$monthCount = 0;
+$topPages = [];
+foreach ($stats as $d => $paths) {
+    if ($d >= $cutoff30 && is_array($paths)) {
+        $monthCount += array_sum($paths);
+        foreach ($paths as $pp => $cc) $topPages[$pp] = ($topPages[$pp] ?? 0) + $cc;
+    }
+}
+arsort($topPages);
+$topPages = array_slice($topPages, 0, 4, true);
+
 // Form values: defaults <- article being edited <- what the user just typed
 // (so a failed publish never wipes their work).
 $form = [
@@ -547,6 +563,15 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   .month-head { font-size: .7rem; font-weight: 700; color: #9a938a; margin: 5px 14px 0; }
   .side-item .cat { display: block; font-size: .66rem; color: #9a938a; font-weight: 400; }
 
+  /* Visit stats card */
+  .side-stats { background: #f9f7f4; border: 1px solid #eee8de; border-radius: 10px; padding: 10px 12px; }
+  .side-stats .side-label { margin: 0 0 4px; }
+  .stat-row { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; padding: 2px 0; }
+  .stat-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stat-row b { font-variant-numeric: tabular-nums; }
+  .stat-row.top { color: #6b655c; font-size: .72rem; }
+  .stats-link { font-size: .74rem; text-decoration: none; display: inline-block; margin-top: 6px; }
+
   .main { flex: 1; padding: 26px 20px 40px; display: flex; justify-content: center; align-items: flex-start; }
   .main .card { width: 100%; max-width: 620px; }
 
@@ -603,6 +628,16 @@ if ($err !== '' && (($_POST['action'] ?? '') === 'publish')) {
   <aside class="side">
     <p class="side-brand">News Panel<span>Benedict Menni Centre</span></p>
     <a class="btn-new" href="panel.php">+ New article</a>
+
+    <div class="side-stats" aria-label="Visit statistics">
+      <p class="side-label">Visits</p>
+      <div class="stat-row"><span>Today</span><b><?= $todayCount ?></b></div>
+      <div class="stat-row"><span>Last 30 days</span><b><?= $monthCount ?></b></div>
+      <?php foreach ($topPages as $pp => $cc): ?>
+        <div class="stat-row top"><span title="<?= e($pp) ?>"><?= e($pp) ?></span><b><?= $cc ?></b></div>
+      <?php endforeach; ?>
+      <a class="stats-link" href="https://analytics.google.com/" target="_blank" rel="noopener">Full stats (Google) ↗</a>
+    </div>
 
     <nav aria-label="Existing articles">
       <p class="side-label">Articles</p>
