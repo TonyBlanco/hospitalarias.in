@@ -62,6 +62,13 @@ limitado a este repo (Contents: Read+write) y haz `gh secret set`.
 
 - Cada publish = 2 commits a `main`: imagen en `public/images/news/<slug>.<ext>`
   y artículo en `src/content/news/<locale>/<slug>.md`.
+- **Manage articles** (arriba del formulario): lista todos los artículos de
+  todos los idiomas con link a la página pública, **Edit** y **Delete**.
+- **Edit** precarga el formulario con el contenido del artículo (mismo slug →
+  misma URL). La foto es opcional al editar — vacía = mantiene la actual.
+- **Delete** borra el `.md` y también la foto si está en `/images/news/`
+  (las imágenes compartidas de `/images/2025/` nunca se tocan). Pide
+  confirmación y no se puede deshacer.
 - Las fotos >1600px se redimensionan a JPEG automáticamente (si GD está
   disponible en el hosting; si no, se sube tal cual).
 - Mismo título = mismo slug = se sobrescribe el artículo (sirve para corregir).
@@ -77,8 +84,7 @@ foto en `public/images/news/`, commit + push, mismo resultado.
 
 ## Notas
 
-- TinaCMS (`/admin/`) sigue desplegado pero ya no es necesario. Si se decide
-  retirarlo: borrar `public/admin/`, `tina/`, y quitar los secrets `TINA_*`
-  del workflow.
+- TinaCMS eliminado por completo (`public/admin/`, `tina/`, deps, secrets).
+  `/admin/` y `/panel` redirigen a `panel.php`.
 - `/es/` ya es un locale real; los artículos en `src/content/news/es/` se
   publican en `/es/noticias/`.
