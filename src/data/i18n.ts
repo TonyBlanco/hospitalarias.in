@@ -79,6 +79,9 @@ const strings = {
     backToNews: '← All news',
     share: 'Share ↗',
     linkCopied: 'Link copied',
+    cookieText: 'We use Google Analytics cookies to count visits. Accept?',
+    cookieAccept: 'Accept',
+    cookieDecline: 'Decline',
 
     // Accessibility
     skipToContent: 'Skip to content',
@@ -165,6 +168,9 @@ const strings = {
     backToNews: '← सभी समाचार',
     share: 'शेयर करें ↗',
     linkCopied: 'लिंक कॉपी हुआ',
+    cookieText: 'हम विज़िट गिनने के लिए Google Analytics कुकीज़ का उपयोग करते हैं। स्वीकार करें?',
+    cookieAccept: 'स्वीकार करें',
+    cookieDecline: 'अस्वीकार करें',
 
     // Accessibility
     skipToContent: 'सामग्री पर जाएँ',
@@ -251,6 +257,9 @@ const strings = {
     backToNews: '← എല്ലാ വാർത്തകളും',
     share: 'ഷെയർ ചെയ്യുക ↗',
     linkCopied: 'ലിങ്ക് പകർത്തി',
+    cookieText: 'സന്ദർശനങ്ങൾ കണക്കാക്കാൻ Google Analytics കുക്കികൾ ഉപയോഗിക്കുന്നു. അംഗീകരിക്കണോ?',
+    cookieAccept: 'അംഗീകരിക്കുക',
+    cookieDecline: 'നിരസിക്കുക',
 
     // Accessibility
     skipToContent: 'ഉള്ളടക്കത്തിലേക്ക് പോകുക',
@@ -338,6 +347,9 @@ const strings = {
     backToNews: '← Todas las noticias',
     share: 'Compartir ↗',
     linkCopied: 'Enlace copiado',
+    cookieText: 'Usamos cookies de Google Analytics para contar visitas. ¿Aceptas?',
+    cookieAccept: 'Aceptar',
+    cookieDecline: 'Rechazar',
 
     // Accessibility
     skipToContent: 'Saltar al contenido',

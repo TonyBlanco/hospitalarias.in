@@ -70,17 +70,6 @@ const breadcrumbSchema = trail.length > 1
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="application/rss+xml" title="News — Benedict Menni Centre" href="/feed.xml" />
     {gscVerification && <meta name="google-site-verification" content={gscVerification} />}
-    {gaId && (
-      <>
-        <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
-        <script is:inline define:vars={{ gaId }}>
-          window.dataLayer = window.dataLayer || [];
-          function gtag() { dataLayer.push(arguments); }
-          gtag('js', new Date());
-          gtag('config', gaId, { anonymize_ip: true });
-        </script>
-      </>
-    )}
     <script is:inline type="application/ld+json" set:html={JSON.stringify(schema)} />
     {breadcrumbSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />}
     {extraSchema && <script is:inline type="application/ld+json" set:html={JSON.stringify(extraSchema)} />}
@@ -90,6 +79,44 @@ const breadcrumbSchema = trail.length > 1
     <script is:inline>
       try { navigator.sendBeacon('/track.php?p=' + encodeURIComponent(location.pathname)); } catch (e) {}
     </script>
+    {gaId && (
+      <div id="consent-bar" class="consent-bar" role="dialog" aria-live="polite" hidden>
+        <p class="consent-text">{t(locale, 'cookieText')}</p>
+        <div class="consent-btns">
+          <button type="button" id="consent-decline" class="consent-decline">{t(locale, 'cookieDecline')}</button>
+          <button type="button" id="consent-accept" class="consent-accept">{t(locale, 'cookieAccept')}</button>
+        </div>
+      </div>
+      <script is:inline define:vars={{ gaId }}>
+        (() => {
+          const KEY = 'ga-consent';
+          const bar = document.getElementById('consent-bar');
+          const load = () => {
+            window.dataLayer = window.dataLayer || [];
+            function gtag() { dataLayer.push(arguments); }
+            gtag('js', new Date());
+            gtag('config', gaId, { anonymize_ip: true });
+            const s = document.createElement('script');
+            s.async = true;
+            s.src = 'https://www.googletagmanager.com/gtag/js?id=' + gaId;
+            document.head.appendChild(s);
+          };
+          const saved = localStorage.getItem(KEY);
+          if (saved === 'yes') { load(); return; }
+          if (saved === 'no' || !bar) return;
+          bar.hidden = false;
+          document.getElementById('consent-accept').onclick = () => {
+            localStorage.setItem(KEY, 'yes');
+            bar.remove();
+            load();
+          };
+          document.getElementById('consent-decline').onclick = () => {
+            localStorage.setItem(KEY, 'no');
+            bar.remove();
+          };
+        })();
+      </script>
+    )}
     <Header locale={locale} pageId={pageId} />
     <main id="main">
       {trail.length > 1 && (
