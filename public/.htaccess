@@ -15,6 +15,10 @@ RedirectMatch 301 ^/en/?$ /
 # Panel config contains secrets — never serve it
 RedirectMatch 404 ^/panel-config\.php$
 
+# /admin/ is the old TinaCMS entry — send it to the news panel
+RedirectMatch 302 ^/admin/?$ /panel.php
+RedirectMatch 301 ^/panel/?$ /panel.php
+
 # Old WordPress media URLs -> migrated images (same filename, date folders preserved)
 RewriteRule ^wp-content/uploads/(.*)$ /images/$1 [R=301,L]
 
