@@ -1,4 +1,4 @@
-export type Locale = 'en' | 'hi' | 'ml';
+export type Locale = 'en' | 'hi' | 'ml' | 'es';
 
 export type PageId =
   | 'home'
@@ -83,6 +83,24 @@ export const routes: Record<Locale, Record<PageId, string>> = {
     newsletter: '/ml/newsletter/',
     contact: '/ml/bandhappedam/',
     'privacy-policy': '/ml/privacy/',
+  },
+  es: {
+    home: '/es/',
+    about: '/es/nosotros/',
+    'mission-values': '/es/nosotros/mision-y-valores/',
+    founders: '/es/nosotros/fundadores/',
+    'benito-menni': '/es/nosotros/fundadores/benito-menni/',
+    team: '/es/nosotros/equipo/',
+    'what-we-do': '/es/que-hacemos/',
+    'get-involved': '/es/participa/',
+    donate: '/es/participa/donar/',
+    volunteer: '/es/participa/voluntariado/',
+    collaborate: '/es/participa/colabora/',
+    news: '/es/noticias/',
+    gallery: '/es/galeria/',
+    newsletter: '/es/boletin/',
+    contact: '/es/contacto/',
+    'privacy-policy': '/es/privacidad/',
   },
 };
 

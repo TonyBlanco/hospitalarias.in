@@ -7,7 +7,7 @@ import { getCollection } from 'astro:content';
 export async function getStaticPaths() {
   const news = await getCollection('news');
   return news
-    .filter((item) => item.id.startsWith('hi/'))
+    .filter((item) => item.id.startsWith('es/'))
     .map((entry) => ({
       params: { slug: entry.id.slice(3) },
       props: { entry },
@@ -17,6 +17,6 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 ---
 
-<Base title={entry.data.title} description={entry.data.description} locale="hi" pageId="news" crumbs={[...crumbPath('hi', 'news'), { label: entry.data.title }]}>
-  <NewsArticle entry={entry} locale="hi" />
+<Base title={entry.data.title} description={entry.data.description} locale="es" pageId="news" crumbs={[...crumbPath('es', 'news'), { label: entry.data.title }]}>
+  <NewsArticle entry={entry} locale="es" />
 </Base>

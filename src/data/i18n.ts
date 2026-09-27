@@ -250,6 +250,90 @@ const strings = {
     heroCtaDonate: 'സംഭാവന ചെയ്യുക & ജീവിതം മാറ്റുക',
     heroCtaLearn: 'ഞങ്ങളുടെ പരിപാടികളെ കുറിച്ച് അറിയുക',
   },
+  es: {
+    // Nav
+    navLabel: 'Navegación principal',
+    home: 'Inicio',
+    about: 'Nosotros',
+    missionValues: 'Misión y Valores',
+    founders: 'Fundadores',
+    team: 'Equipo',
+    whatWeDo: 'Qué hacemos',
+    getInvolved: 'Participa',
+    donate: 'Donar',
+    volunteer: 'Voluntariado',
+    collaborate: 'Colaborar',
+    news: 'Noticias',
+    contact: 'Contacto',
+    languageEn: 'EN',
+    languageHi: 'HI',
+    languageMl: 'ML',
+
+    // Footer
+    tagline: 'Cuidado compasivo, rehabilitación y hospitalidad.',
+    quickLinks: 'Enlaces rápidos',
+    contactInfo: 'Información de contacto',
+    privacyPolicy: 'Política de privacidad',
+    newsletter: 'Boletín',
+    newsletterText: 'Recibe novedades del centro cuando se conecte el servicio de boletín.',
+    copyright: 'Todos los derechos reservados.',
+
+    // Home
+    homeEyebrow: 'Cuidado compasivo y rehabilitación',
+    whatWeDoEyebrow: 'Qué hacemos',
+    whatWeDoTitle: 'Círculo integral de cuidados',
+    whatWeDoDesc: 'El centro ofrece apoyo básico, tratamiento profesional, rehabilitación y reintegración.',
+    shelterTitle: 'Acogida y tratamiento',
+    shelterDesc: 'Acogida segura, comida nutritiva, ropa y atención médica y psiquiátrica profesional con seguimiento continuo.',
+    rehabTitle: 'Rehabilitación',
+    rehabDesc: 'Psicoterapia individual y de grupo, terapia ocupacional, formación profesional y actividades de la vida diaria.',
+    reintTitle: 'Reintegración',
+    reintDesc: 'Participación comunitaria, programas culturales, atención pastoral y apoyo para una vida con sentido reconectada con la sociedad.',
+    impactResidents: 'Residentes atendidas',
+    impactCare: 'Cuidado continuo',
+    impactYears: 'Años de misión',
+    impactVision: 'Visión compartida',
+    foundersEyebrow: 'Nuestras raíces',
+    foundersTitle: 'Fundados en la compasión',
+    foundersDesc: 'La misión hospitalaria se enraíza en el servicio compasivo, el cuidado de las personas que viven con enfermedad y el compromiso de restaurar su dignidad. San Benito Menni fundó las Hermanas Hospitalarias con una visión de hospitalidad y curación.',
+    foundersCta: 'Conoce a Benito Menni',
+    foundersAlt: 'Fundadores de la comunidad Hospitalaria',
+    getInvolvedEyebrow: 'Participa',
+    getInvolvedTitle: 'Tres formas de ayudar',
+    donateTitle: 'Donar',
+    donateDesc: 'Tu donación sostiene la comida, la acogida, el tratamiento y los programas de rehabilitación de mujeres en situación de vulnerabilidad.',
+    donateCta: 'Donar ahora',
+    volunteerTitle: 'Voluntariado',
+    volunteerDesc: 'Ofrece tu tiempo, tus habilidades y tu presencia para acompañar a las residentes con cercanía humana y participación comunitaria.',
+    volunteerCta: 'Saber más',
+    collaborateTitle: 'Colaborar',
+    collaborateDesc: 'Colabora con nosotros a través de responsabilidad compartida, servicios y alianzas comunitarias.',
+    collaborateCta: 'Empezar una conversación',
+
+    // Gallery
+    galleryTitle: 'Galería',
+    galleryDesc: 'Imágenes de las actividades de rehabilitación, la vida comunitaria y los servicios.',
+    galleryIntro: 'La galería recoge imágenes de terapias, actividades ocupacionales, programas culturales, salidas y la vida diaria del centro.',
+    lightboxLabel: 'Visor de imágenes',
+    lightboxClose: 'Cerrar',
+    lightboxPrev: 'Anterior',
+    lightboxNext: 'Siguiente',
+    viewImage: 'Ver',
+
+    // News
+    newsTitle: 'Noticias',
+    newsDesc: 'Descubre las historias, los eventos y la vida diaria que dan vida a nuestra misión.',
+    newsEmpty: 'Aún no hay noticias. Vuelve pronto para ver novedades.',
+    readMore: 'Leer más',
+    backToNews: '← Todas las noticias',
+
+    // Accessibility
+    skipToContent: 'Saltar al contenido',
+
+    // Home CTAs
+    heroCtaDonate: 'Dona y cambia una vida',
+    heroCtaLearn: 'Conoce nuestros programas',
+  },
 } satisfies Record<Locale, Record<string, string>>;
 
 export function t(locale: Locale, key: string): string {

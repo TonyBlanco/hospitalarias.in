@@ -71,6 +71,30 @@
       },
       { "label": "വാർത്തകൾ", "href": "/ml/varthakal/" },
       { "label": "ബന്ധപ്പെടുക", "href": "/ml/bandhappedam/" }
+    ],
+    "es": [
+      { "label": "Inicio", "href": "/es/" },
+      {
+        "label": "Nosotros",
+        "href": "/es/nosotros/",
+        "children": [
+          { "label": "Misión y Valores", "href": "/es/nosotros/mision-y-valores/" },
+          { "label": "Fundadores", "href": "/es/nosotros/fundadores/" },
+          { "label": "Equipo", "href": "/es/nosotros/equipo/" }
+        ]
+      },
+      { "label": "Qué hacemos", "href": "/es/que-hacemos/" },
+      {
+        "label": "Participa",
+        "href": "/es/participa/",
+        "children": [
+          { "label": "Donar", "href": "/es/participa/donar/" },
+          { "label": "Voluntariado", "href": "/es/participa/voluntariado/" },
+          { "label": "Colaborar", "href": "/es/participa/colabora/" }
+        ]
+      },
+      { "label": "Noticias", "href": "/es/noticias/" },
+      { "label": "Contacto", "href": "/es/contacto/" }
     ]
   }
 }

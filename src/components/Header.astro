@@ -9,7 +9,8 @@ const nav = navigation.locales[locale];
 const logoSrc = '/logo.svg';
 const logoAlt = 'Sisters Hospitallers';
 
-const otherLocales = (['en', 'hi', 'ml'] as Locale[]).filter(l => l !== locale);
+const otherLocales = (['en', 'hi', 'ml', 'es'] as Locale[]).filter(l => l !== locale);
+const langLabels: Record<Locale, string> = { en: 'EN', hi: 'हिं', ml: 'ML', es: 'ES' };
 ---
 
 <header class="site-header">
@@ -37,7 +38,7 @@ const otherLocales = (['en', 'hi', 'ml'] as Locale[]).filter(l => l !== locale);
       <div class="language-switches">
         {otherLocales.map(l => (
           <a class="language-switch" href={routes[l][pageId]} hreflang={l}>
-            {l === 'hi' ? 'हिं' : l === 'ml' ? 'ML' : 'EN'}
+            {langLabels[l]}
           </a>
         ))}
       </div>

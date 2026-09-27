@@ -32,3 +32,12 @@ tina/__generated__/
 logs/
 *.log
 node_modules/
+
+# AI Memory Layer
+.venv/
+__pycache__/
+*.pyc
+agent_runtime/__pycache__/
+.ai-memory/.mem0_db/
+.ai-memory/agent_log.archive.md
+CODEX_CONTEXT.md

@@ -8,7 +8,7 @@ type Props = { entry: CollectionEntry<'news'>; locale: Locale };
 const { entry, locale } = Astro.props;
 const { Content } = await render(entry);
 
-const localeMap: Record<Locale, string> = { en: 'en-GB', hi: 'hi-IN', ml: 'ml-IN' };
+const localeMap: Record<Locale, string> = { en: 'en-GB', hi: 'hi-IN', ml: 'ml-IN', es: 'es-ES' };
 const dateStr = entry.data.date.toLocaleDateString(localeMap[locale] ?? 'en-GB', {
   year: 'numeric',
   month: 'long',

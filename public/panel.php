@@ -22,7 +22,7 @@ for ($i = 0; $i < 6 && $dir !== dirname($dir); $i++) {
 }
 
 const CATEGORIES = ['Campaigns', 'Vatican', 'Mission', 'Community', 'Events', 'General'];
-const LOCALES = ['en' => 'English', 'hi' => 'हिन्दी (Hindi)', 'ml' => 'മലയാളം (Malayalam)'];
+const LOCALES = ['en' => 'English', 'es' => 'Español (Spanish)', 'hi' => 'हिन्दी (Hindi)', 'ml' => 'മലയാളം (Malayalam)'];
 const MAX_UPLOAD = 12 * 1024 * 1024; // 12 MB
 
 $msg = '';
@@ -183,7 +183,7 @@ if ($logged && isset($_POST['action']) && $_POST['action'] === 'publish') {
                 } else {
                     [$okMd, $errMd] = ghCommit($config, $mdRepoPath, $md, "news: {$title}");
                     if ($okMd) {
-                        $base = ['en' => '/en/news/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/'][$locale];
+                        $base = ['en' => '/en/news/', 'hi' => '/hi/samachar/', 'ml' => '/ml/varthakal/', 'es' => '/es/noticias/'][$locale];
                         $msg = "Published \"{$title}\". It will appear at https://hospitalarias.in{$base} in about 3-5 minutes.";
                     } else {
                         $err = $errMd;
