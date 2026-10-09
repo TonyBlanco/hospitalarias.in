@@ -5,6 +5,7 @@ import NewsView from '@/components/NewsView.astro';
 import TeamView from '@/components/TeamView.astro';
 import Base from '@/layouts/Base.astro';
 import { getPage, pageIds, routes, type PageId } from '@/data/pages';
+import { staticPageSeo } from '@/utils/seo';
 
 export function getStaticPaths() {
   return pageIds
@@ -18,9 +19,10 @@ export function getStaticPaths() {
 type Props = { pageId: PageId };
 const { pageId } = Astro.props;
 const page = getPage(pageId, 'es');
+const seo = staticPageSeo('es', pageId);
 ---
 
-<Base title={page.title} description={page.description} locale="es" pageId={pageId}>
+<Base title={seo.title} description={seo.description} locale="es" pageId={pageId}>
   {pageId === 'gallery' ? (
     <GalleryView page={page} locale="es" />
   ) : pageId === 'news' ? (
