@@ -1,7 +1,7 @@
 ---
 import Base from '@/layouts/Base.astro';
 import NewsArticle from '@/components/NewsArticle.astro';
-import { crumbPath, newsArticleSchema } from '@/utils/seo';
+import { crumbPath, newsArticleAlternateLinks, newsArticleSchema } from '@/utils/seo';
 import { mediaPath } from '@/utils/media';
 import { getCollection } from 'astro:content';
 
@@ -16,10 +16,12 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
+const slug = entry.id.slice(3);
 const canonical = new URL(Astro.url.pathname, 'https://hospitalarias.in').toString();
 const ogImage = new URL(mediaPath(entry.data.image), 'https://hospitalarias.in').toString();
+const alternates = newsArticleAlternateLinks(slug);
 ---
 
-<Base title={entry.data.title} description={entry.data.description} locale="es" pageId="news" crumbs={[...crumbPath('es', 'news'), { label: entry.data.title }]} ogType="article" ogImage={ogImage} publishedTime={entry.data.date.toISOString()} extraSchema={newsArticleSchema(entry, 'es', canonical)}>
+<Base title={entry.data.title} description={entry.data.description} locale="es" pageId="news" indexable={true} alternates={alternates} crumbs={[...crumbPath('es', 'news'), { label: entry.data.title }]} ogType="article" ogImage={ogImage} publishedTime={entry.data.date.toISOString()} extraSchema={newsArticleSchema(entry, 'es', canonical)}>
   <NewsArticle entry={entry} locale="es" />
 </Base>

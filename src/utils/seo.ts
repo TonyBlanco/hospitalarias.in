@@ -1,16 +1,65 @@
-import { routes, getPage, type Locale, type PageId } from '@/data/pages';
+import { existsSync } from 'node:fs';
+import { routes, getPage, isPageIndexable, type Locale, type PageId } from '@/data/pages';
+import { t } from '@/data/i18n';
 import { mediaPath } from '@/utils/media';
 import navigation from '@/content/settings/navigation.json';
 
+const SITE = 'https://hospitalarias.in';
 const allLocales: Locale[] = ['en', 'hi', 'ml', 'es'];
 
-export function alternateLinks(id: PageId) {
-  const localeLinks = allLocales.map(lang => ({
+const NEWS_BASE: Record<Locale, string> = {
+  en: '/en/news/',
+  hi: '/hi/samachar/',
+  ml: '/ml/varthakal/',
+  es: '/es/noticias/',
+};
+
+export type HreflangLink = { lang: string; href: string };
+
+/** hreflang cluster for indexable static pages only */
+export function indexableAlternateLinks(id: PageId): HreflangLink[] {
+  const langs = allLocales.filter((lang) => isPageIndexable(lang, id));
+  const links: HreflangLink[] = langs.map((lang) => ({
     lang,
-    href: `https://hospitalarias.in${routes[lang][id]}`,
+    href: `${SITE}${routes[lang][id]}`,
   }));
-  return [...localeLinks, { lang: 'x-default' as const, href: `https://hospitalarias.in${routes.en[id]}` }];
+  if (isPageIndexable('en', id)) {
+    links.push({ lang: 'x-default', href: `${SITE}${routes.en[id]}` });
+  }
+  return links;
 }
+
+/** Localized title/description for indexable non-English static pages */
+export function staticPageSeo(locale: Locale, pageId: PageId): { title: string; description: string } {
+  const page = getPage(pageId, locale);
+  if (locale === 'en') return { title: page.title, description: page.description };
+  if (pageId === 'news') {
+    return { title: t(locale, 'newsTitle'), description: t(locale, 'newsDesc') };
+  }
+  if (pageId === 'team') {
+    const description =
+      locale === 'hi'
+        ? 'केंद्र के हमारे मिशन को संभव बनाने वाली बहनें, कर्मचारी और सहयोगी।'
+        : locale === 'ml'
+          ? 'ഞങ്ങളുടെ ദൗത്യത്തിന് ജീവൻ നൽകുന്ന സന്ന്യാസിനിമാർ, ജീവനക്കാർ & സഹകാരികൾ.'
+          : page.description;
+    return { title: t(locale, 'team'), description };
+  }
+  return { title: page.title, description: page.description };
+}
+
+export function newsArticleAlternateLinks(slug: string): HreflangLink[] {
+  const langs = allLocales.filter((locale) => existsSync(`src/content/news/${locale}/${slug}.md`));
+  const links: HreflangLink[] = langs.map((lang) => ({
+    lang,
+    href: `${SITE}${NEWS_BASE[lang]}${slug}/`,
+  }));
+  if (langs.includes('en')) {
+    links.push({ lang: 'x-default', href: `${SITE}${NEWS_BASE.en}${slug}/` });
+  }
+  return links;
+}
+
 
 export function otherLocale(locale: Locale): Locale {
   const others = allLocales.filter(l => l !== locale);

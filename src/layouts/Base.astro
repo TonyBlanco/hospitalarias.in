@@ -4,7 +4,8 @@ import Footer from '@/components/Footer.astro';
 import NoticeBar from '@/components/NoticeBar.astro';
 import '@/styles/global.css';
 import type { Locale, PageId } from '@/data/pages';
-import { alternateLinks, crumbPath, type Crumb } from '@/utils/seo';
+import { englishCanonicalFor, isPageIndexable } from '@/data/pages';
+import { crumbPath, indexableAlternateLinks, type Crumb, type HreflangLink } from '@/utils/seo';
 import { t } from '@/data/i18n';
 
 type Props = {
@@ -17,11 +18,32 @@ type Props = {
   ogImage?: string;
   publishedTime?: string;
   extraSchema?: Record<string, unknown>;
+  /** Explicit hreflang for news articles; omit for static pages */
+  alternates?: HreflangLink[];
+  /** Override indexability (e.g. news articles are always indexable) */
+  indexable?: boolean;
 };
 
-const { title, description, locale, pageId, crumbs, ogType, ogImage, publishedTime, extraSchema } = Astro.props;
-const canonical = new URL(Astro.url.pathname, 'https://hospitalarias.in').toString();
-const alternates = alternateLinks(pageId);
+const {
+  title,
+  description,
+  locale,
+  pageId,
+  crumbs,
+  ogType,
+  ogImage,
+  publishedTime,
+  extraSchema,
+  alternates: alternatesProp,
+  indexable: indexableProp,
+} = Astro.props;
+
+const indexable = indexableProp ?? isPageIndexable(locale, pageId);
+const selfCanonical = new URL(Astro.url.pathname, 'https://hospitalarias.in').toString();
+const canonical = indexable ? selfCanonical : englishCanonicalFor(pageId);
+const alternates = indexable ? (alternatesProp ?? indexableAlternateLinks(pageId)) : [];
+const robots = !indexable ? 'noindex,follow' : undefined;
+
 const ogLocaleMap: Record<Locale, string> = { en: 'en_US', es: 'es_ES', hi: 'hi_IN', ml: 'ml_IN' };
 const ogImageUrl = ogImage ?? 'https://hospitalarias.in/images/2025/09/HOSPITALLER-FAMILY-scaled.jpg';
 // Injected at build time from repo secrets — empty means "not configured, emit nothing".
@@ -58,6 +80,7 @@ const breadcrumbSchema = trail.length > 1
     <link rel="apple-touch-icon" href="/logo.svg" />
     <title>{title} | Hospitalarias</title>
     <meta name="description" content={description} />
+    {robots && <meta name="robots" content={robots} />}
     <link rel="canonical" href={canonical} />
     {alternates.map((alternate) => <link rel="alternate" hreflang={alternate.lang} href={alternate.href} />)}
     <meta property="og:type" content={ogType ?? 'website'} />

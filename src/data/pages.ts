@@ -502,7 +502,7 @@ const basePages: Record<PageId, PageData> = {
 export function getPage(id: PageId, locale: Locale): PageData {
   const page = basePages[id];
   if (locale === 'en') return page;
-  // For hi/ml, use English content for now (translations pending)
+  // Non-English body still falls back to English until CMS translations land.
   return page;
 }
 
@@ -520,3 +520,39 @@ export function getPageByPath(pathname: string, locale: Locale): PageData | unde
 }
 
 export const pageIds = Object.keys(basePages) as PageId[];
+
+/**
+ * Static pages with real localized title, description, and body (verified manually).
+ * English is always indexable; other locales only when listed here.
+ */
+export const pageTranslated: Record<Locale, Partial<Record<PageId, true>>> = {
+  en: Object.fromEntries(pageIds.map((id) => [id, true])) as Record<PageId, true>,
+  hi: {
+    news: true,
+    team: true,
+  },
+  ml: {
+    news: true,
+    team: true,
+  },
+  es: {
+    news: true,
+  },
+};
+
+export function isPageIndexable(locale: Locale, pageId: PageId): boolean {
+  if (locale === 'en') return true;
+  return pageTranslated[locale][pageId] === true;
+}
+
+export function englishCanonicalFor(pageId: PageId): string {
+  return `https://hospitalarias.in${routes.en[pageId]}`;
+}
+
+export function localeFromPathname(pathname: string): Locale {
+  const normalized = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  if (normalized === '/') return 'en';
+  const segment = normalized.split('/').filter(Boolean)[0];
+  if (segment === 'hi' || segment === 'ml' || segment === 'es') return segment;
+  return 'en';
+}
